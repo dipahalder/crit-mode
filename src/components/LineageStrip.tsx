@@ -31,8 +31,8 @@ export default function LineageStrip({ versions }: { versions: Version[] }) {
   return (
     <div style={barStyle}>
       <div style={headerStyle}>
-        <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '1px', color: '#52525b' }}>VERSION LINEAGE</div>
-        <div style={{ fontSize: 11, color: '#b4b4bc', marginTop: 3 }}>{clean('read-only · how it evolved')}</div>
+        <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '1px', color: '#52525b' }}>VERSION HISTORY</div>
+        <div style={{ fontSize: 11, color: '#b4b4bc', marginTop: 3 }}>{clean('read-only')}</div>
       </div>
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0 16px' }}>
         {versions.map((v, i) => {

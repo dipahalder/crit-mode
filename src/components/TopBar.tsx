@@ -19,7 +19,6 @@ export default function TopBar({
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
           <span style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: '-0.3px' }}>Design Crit Mode</span>
-          <span style={{ fontSize: 11.5, color: '#a1a1aa', fontWeight: 500, letterSpacing: '0.1px' }}>react, don't describe</span>
         </div>
       </div>
       {isWorkspace && (

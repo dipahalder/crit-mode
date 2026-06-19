@@ -63,6 +63,29 @@ interface Measured {
   h: number
 }
 
+// Push apart pins that would overlap, keeping them near their element (M14).
+const MIN_GAP = 26
+function nudgePins(items: { id: string; x: number; y: number }[]) {
+  const placed: { id: string; x: number; y: number }[] = []
+  for (const it of [...items].sort((a, b) => a.y - b.y)) {
+    let y = it.y
+    for (let guard = 0; guard < 30; guard++) {
+      let bumped = false
+      for (const q of placed) {
+        const dx = it.x - q.x
+        const dy = y - q.y
+        if (Math.hypot(dx, dy) < MIN_GAP) {
+          y = q.y + Math.sqrt(Math.max(1, MIN_GAP * MIN_GAP - dx * dx))
+          bumped = true
+        }
+      }
+      if (!bumped) break
+    }
+    placed.push({ id: it.id, x: it.x, y })
+  }
+  return placed
+}
+
 export default function Workspace({
   brand,
   dots,
@@ -232,6 +255,12 @@ export default function Workspace({
     pop = { left: Math.max(8, left), top: Math.max(8, top) }
   }
 
+  // Pin positions with overlaps nudged apart, and rail rows ordered top-to-bottom
+  // by where each pin actually sits (M14: number/order in DOM order).
+  const pinPositions = nudgePins(measured.map((m) => ({ id: m.id, x: m.left + m.w / 2, y: m.top + m.h / 2 })))
+  const topById = new Map(measured.map((m) => [m.id, m.top]))
+  const railDots = [...dots].sort((a, b) => (topById.get(a.id) ?? 1e9) - (topById.get(b.id) ?? 1e9))
+
   return (
     <div style={workspaceStyle}>
       <LineageStrip versions={versions} />
@@ -245,8 +274,8 @@ export default function Workspace({
 
         {/* Pin overlay (canvas-content coords; scrolls with the page). */}
         {showComments &&
-          measured.map((m) => (
-            <button key={m.id} type="button" aria-label="Open critique" onClick={() => handleOpen(m.id)} style={pinStyle(m.left + m.w / 2, m.top + m.h / 2, openDot === m.id)} />
+          pinPositions.map((p) => (
+            <button key={p.id} type="button" aria-label="Open critique" onClick={() => handleOpen(p.id)} style={pinStyle(p.x, p.y, openDot === p.id)} />
           ))}
 
         {showComments && pop && openDotData && (
@@ -279,7 +308,7 @@ export default function Workspace({
         )}
       </div>
 
-      <CommentsRail dots={dots} openDot={openDot} resolvedDots={resolvedDots} showComments={showComments} persona={persona} onSetPersona={onSetPersona} onToggleComments={toggleComments} onRowClick={handleOpen} />
+      <CommentsRail dots={railDots} openDot={openDot} resolvedDots={resolvedDots} showComments={showComments} critiquing={critiquing} persona={persona} onSetPersona={onSetPersona} onToggleComments={toggleComments} onRowClick={handleOpen} />
     </div>
   )
 }

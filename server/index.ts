@@ -105,7 +105,7 @@ async function generate(brand: BrandKey, region: FieldKey, pageModel: Record<str
 
   // Persona voice (M13): layer the point of view onto the structural rules.
   const p = PERSONA_MAP[persona as Persona] ?? PERSONA_MAP.designer
-  const system = `You are ${p.name}, ${p.voice}.\n\n${SYSTEM_PROMPT}\n\nStay in this person's voice and priorities: change what you notice and how you say it, never the structure.`
+  const system = `You are ${p.voice}.\n\n${SYSTEM_PROMPT}\n\nStay in this point of view and its priorities: change what you notice and how you say it, never the structure.`
 
   const user = `Brand: ${b.name} (${b.category}).
 Region to critique: ${dot.region} (page field "${region}").
@@ -157,6 +157,107 @@ app.post('/critique', async (req, res) => {
   } catch (err) {
     console.warn(`[critique] ${brand}/${region} -> fallback (${(err as Error).message})`)
     return res.json({ ...fallback, source: 'fallback' })
+  }
+})
+
+// --- M14: LLM-chosen critique targets -------------------------------------
+
+// The static six critiques for a brand, shaped for /critiques (the fallback).
+function staticCritiques(brand: BrandKey) {
+  return brands[brand].dots
+    .filter((d) => d.field !== 'concept')
+    .map((d) => ({
+      targetId: d.field,
+      critique: clean(d.critique),
+      prompt: clean(d.prompt),
+      options: d.options.map((o) => ({ value: o.value, vibe: clean(o.vibe), tag: clean(o.tag), ...(o.swatch ? { swatch: o.swatch } : {}) })),
+    }))
+}
+
+// Validate + clean an option array against a field's editable type.
+function cleanOptions(rawOptions: unknown, field: FieldKey) {
+  if (!Array.isArray(rawOptions) || rawOptions.length < 2) throw new Error('bad options')
+  const opts = rawOptions.map((raw) => {
+    const o = raw as Record<string, unknown>
+    if (typeof o.value !== 'string' || !o.value.trim() || o.value.length > 300) throw new Error('bad value')
+    if (typeof o.vibe !== 'string' || !o.vibe.trim()) throw new Error('bad vibe')
+    if (field === 'palette' && !PALETTE_VALUES.includes(o.value as never)) throw new Error('bad palette value')
+    return { value: o.value as string, vibe: clean(o.vibe as string), tag: clean(typeof o.tag === 'string' ? o.tag : (o.vibe as string)) }
+  })
+  if (field === 'palette') return paletteOptions.map((o) => ({ value: o.value, vibe: clean(o.vibe), tag: clean(o.tag), swatch: o.swatch }))
+  return opts.slice(0, 3)
+}
+
+// The model chooses which regions to critique (or critiques the given targets),
+// never coordinates. Returns [{targetId, critique, prompt, options}].
+async function generateMany(brand: BrandKey, pageModel: Record<string, unknown>, persona: Persona | undefined, inventory: unknown, targets: unknown) {
+  const b = brands[brand]
+  const fieldDots = b.dots.filter((d) => d.field !== 'concept')
+  const validFields = new Set<string>(fieldDots.map((d) => d.field))
+  const p = PERSONA_MAP[persona as Persona] ?? PERSONA_MAP.designer
+
+  const inv = Array.isArray(inventory) && inventory.length
+    ? (inventory as Array<Record<string, unknown>>)
+    : fieldDots.map((d) => ({ id: d.field, kind: d.kind, section: d.region, text: String(pageModel?.[d.field] ?? '') }))
+
+  const pinned = Array.isArray(targets) ? (targets as string[]).filter((t) => validFields.has(t)) : []
+  const selection = pinned.length
+    ? `Critique exactly these regions, by id: ${pinned.join(', ')}.`
+    : 'Choose the 4 to 6 regions with the most leverage. Spread them across the page rather than clustering, and skip regions that are already strong.'
+
+  const system = `You are ${p.voice}.\n\n${SYSTEM_PROMPT}\n\nYou are reviewing a whole landing page and deciding what is worth commenting on. Stay in this point of view and its priorities.`
+  const user = `Brand: ${b.name} (${b.category}).
+Regions you may critique (id, kind, section, current text):
+${inv.map((it) => `- ${it.id} [${it.kind}] (${it.section}): ${JSON.stringify(it.text)}`).join('\n')}
+Full current page model: ${JSON.stringify(pageModel)}.
+
+${selection}
+For each chosen region write one critique and 2 to 3 taste-different options. For the "palette" region, each option value must be exactly one of: ${PALETTE_VALUES.join(', ')}.
+Return JSON only: {"critiques":[{"targetId":string,"critique":string,"prompt":string,"options":[{"value":string,"vibe":string,"tag":string}]}]}.`
+
+  const message = await client!.messages.create({ model: MODEL, max_tokens: 2048, system, messages: [{ role: 'user', content: user }] })
+  const text = message.content.filter((blk): blk is Anthropic.TextBlock => blk.type === 'text').map((blk) => blk.text).join('')
+  const parsed = JSON.parse(stripFences(text)) as { critiques?: unknown }
+  if (!parsed || !Array.isArray(parsed.critiques)) throw new Error('no critiques array')
+
+  const seen = new Set<string>()
+  const out: Array<{ targetId: string; critique: string; prompt: string; options: ReturnType<typeof cleanOptions> }> = []
+  for (const raw of parsed.critiques) {
+    const c = raw as Record<string, unknown>
+    const targetId = c.targetId
+    // Drop unknown/duplicate targets and malformed entries.
+    if (typeof targetId !== 'string' || !validFields.has(targetId) || seen.has(targetId)) continue
+    if (typeof c.critique !== 'string' || !c.critique.trim()) continue
+    if (typeof c.prompt !== 'string' || !c.prompt.trim()) continue
+    let options
+    try {
+      options = cleanOptions(c.options, targetId as FieldKey)
+    } catch {
+      continue
+    }
+    seen.add(targetId)
+    out.push({ targetId, critique: clean(c.critique), prompt: clean(c.prompt), options })
+    if (out.length >= 7) break // enforce the cap
+  }
+  if (out.length === 0) throw new Error('no valid critiques')
+  return out
+}
+
+app.post('/critiques', async (req, res) => {
+  const { brand, pageModel, persona, inventory, targets } = req.body ?? {}
+  if (!BRAND_KEYS.includes(brand)) return res.status(400).json({ error: 'invalid brand' })
+
+  if (!client) {
+    console.log(`[critiques] ${brand} as ${persona ?? 'designer'} -> fallback (no API key)`)
+    return res.json({ critiques: staticCritiques(brand), source: 'fallback' })
+  }
+  try {
+    const critiques = await generateMany(brand, pageModel ?? {}, persona, inventory, targets)
+    console.log(`[critiques] ${brand} as ${persona ?? 'designer'} -> live (${critiques.length}: ${critiques.map((c) => c.targetId).join(', ')})`)
+    return res.json({ critiques, source: 'live' })
+  } catch (err) {
+    console.warn(`[critiques] ${brand} as ${persona ?? 'designer'} -> fallback (${(err as Error).message})`)
+    return res.json({ critiques: staticCritiques(brand), source: 'fallback' })
   }
 })
 

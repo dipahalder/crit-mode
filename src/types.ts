@@ -23,9 +23,7 @@ export type Persona = 'designer' | 'cd' | 'ceo' | 'user'
 
 export interface PersonaInfo {
   id: Persona
-  name: string
   role: string
-  initials: string
   color: string
   voice: string // priorities, layered onto the LLM system prompt
 }

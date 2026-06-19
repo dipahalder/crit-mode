@@ -78,12 +78,10 @@ export default function Popover({
         </button>
       </div>
 
-      {/* Attribution (M13): who left this note. */}
+      {/* Attribution (M13): the point of view this note is written from. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-        <Avatar persona={persona} size={20} />
-        <span style={{ fontSize: 11.5, color: '#71717a' }}>
-          <span style={{ fontWeight: 700, color: '#27272a' }}>{clean(persona.name)}</span>, {clean(persona.role)}
-        </span>
+        <Avatar persona={persona} size={9} />
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: '#27272a' }}>{clean(persona.role)}</span>
       </div>
 
       <p style={{ fontSize: 14.5, lineHeight: 1.5, color: '#27272a', margin: '0 0 4px', fontWeight: 500 }}>{clean(dot.critique)}</p>

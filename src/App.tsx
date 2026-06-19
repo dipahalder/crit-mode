@@ -2,11 +2,20 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { brands, palettes } from './data/brands'
 import { PERSONA_MAP } from './data/personas'
-import type { BrandKey, CritiqueResponse, Dot, Option, Page, PaletteKey, Persona, Preview, Screen, Version } from './types'
+import type { BrandKey, CritiqueResponse, Dot, FieldKey, Option, Page, PaletteKey, Persona, Preview, Screen, Version } from './types'
 import { clean } from './utils/clean'
 import TopBar from './components/TopBar'
 import StartScreen from './components/StartScreen'
 import Workspace from './components/Workspace'
+
+// Inventory kinds for the editable fields (M14), sent to the LLM as context.
+const INV_KIND: Record<FieldKey, string> = { headline: 'heading', subhead: 'body', cta: 'cta', heroImg: 'image', social: 'social', palette: 'section', concept: 'section' }
+
+// One round of LLM-chosen critiques: the chosen target fields + their critiques.
+// `persona` is who the round was generated for; a live critique is only used while
+// it still matches the current persona, so switching personas rephrases instantly
+// from authored copy and the LLM round refines it when it lands.
+type Round = { source: 'live' | 'fallback'; persona: Persona; byField: Record<string, CritiqueResponse>; targets: string[] }
 
 // The authored copy for a persona, falling back to the base (designer) voice.
 function personaCopy(d: Dot, persona: Persona): { critique: string; prompt: string } {
@@ -52,12 +61,14 @@ export default function App() {
   const [preview, setPreview] = useState<Preview | null>(null)
   const [resolvedDots, setResolvedDots] = useState<Record<string, string>>({})
   const [versions, setVersions] = useState<Version[]>([])
-  // Live critiques keyed by dot id, and whether a fetch round is in flight (M11).
-  const [live, setLive] = useState<Record<string, CritiqueResponse>>({})
+  // The LLM-chosen critique round (M14), and whether a fetch is in flight.
+  const [round, setRound] = useState<Round | null>(null)
   const [loading, setLoading] = useState(false)
   const [persona, setPersona] = useState<Persona>('designer')
-  // Generation counter so only the latest fetch round applies its results (keeps
-  // a comment's text stable once shown, and tolerates React StrictMode).
+  // Mirror of `round` read inside the effect (to reuse the chosen targets across
+  // persona/Accept refetches) without making `round` a dependency.
+  const roundRef = useRef<Round | null>(null)
+  // Generation counter so only the latest fetch round applies its results.
   const genRef = useRef(0)
 
   // chooseBrand: reset the page to the brand's defaults + palette, reset the
@@ -71,13 +82,15 @@ export default function App() {
     setVersions([{ n: 1, palette: br.palKey, headline: br.defaults.headline, note: 'Starting point' }])
     setOpenDot(null)
     setPreview(null)
-    setLive({})
+    roundRef.current = null // new brand: let the LLM choose fresh targets
+    setRound(null)
     setScreen('workspace')
   }
   function switchBrand() {
     setOpenDot(null)
     setPreview(null)
-    setLive({})
+    roundRef.current = null
+    setRound(null)
     setScreen('start')
   }
   // openNote toggles the open dot and clears any preview (so try-ons never
@@ -112,37 +125,47 @@ export default function App() {
 
   const brand = brands[activeBrand]
 
-  // Fetch live critiques on brand-pick and after each Accept (page changes only
-  // on those, not on preview). Debounced + abortable; on any failure the dot
-  // keeps its static critique (client-side fallback, guardrail 3). The "page"
-  // dependency is what makes the next round reflect the changed page.
+  // M14: one round where the LLM chooses which regions to critique. On brand
+  // pick it chooses fresh (different pins per design); on persona switch / Accept
+  // it re-critiques the same chosen targets. On any failure the round falls back
+  // to the static six. Debounced + abortable + generation-tagged.
   useEffect(() => {
     if (screen !== 'workspace') return
-    // The concept dots (M12) are curated, not LLM-generated; skip them.
-    const fetchDots = brands[activeBrand].dots.filter((d) => d.field !== 'concept')
-    if (fetchDots.length === 0) return
+    const editable = brands[activeBrand].dots.filter((d) => d.field !== 'concept')
+    if (editable.length === 0) return
+    const inventory = editable.map((d) => ({ id: d.field, kind: INV_KIND[d.field], section: d.region, text: String(page[d.field] ?? '') }))
     const gen = ++genRef.current
     setLoading(true)
     const ctrl = new AbortController()
     const timer = setTimeout(async () => {
-      // Fetch every region in parallel and apply the whole round at once, so all
-      // comments appear together (no piecemeal popping in).
-      const results = await Promise.allSettled(
-        fetchDots.map(async (d) => {
-          const r = await fetch('/critique', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ brand: activeBrand, region: d.field, pageModel: page, persona }),
-            signal: ctrl.signal,
-          })
-          if (!r.ok) throw new Error(`status ${r.status}`)
-          return [d.id, (await r.json()) as CritiqueResponse] as const
-        }),
-      )
-      if (gen !== genRef.current) return // a newer round superseded this one
-      const next: Record<string, CritiqueResponse> = {}
-      for (const res of results) if (res.status === 'fulfilled') next[res.value[0]] = res.value[1]
-      setLive((prev) => ({ ...prev, ...next }))
+      const fallback: Round = { source: 'fallback', persona, byField: {}, targets: editable.map((d) => d.field) }
+      let result: Round = fallback
+      try {
+        const r = await fetch('/critiques', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ brand: activeBrand, pageModel: page, persona, inventory, targets: roundRef.current?.targets }),
+          signal: ctrl.signal,
+        })
+        if (!r.ok) throw new Error(`status ${r.status}`)
+        const data = (await r.json()) as { source: string; critiques: Array<{ targetId: string; critique: string; prompt: string; options: CritiqueResponse['options'] }> }
+        if (data.source === 'live' && Array.isArray(data.critiques) && data.critiques.length) {
+          const valid = new Set<string>(editable.map((d) => d.field))
+          const byField: Record<string, CritiqueResponse> = {}
+          const targets: string[] = []
+          for (const c of data.critiques) {
+            if (!valid.has(c.targetId) || byField[c.targetId]) continue // drop unknown/duplicate
+            byField[c.targetId] = { critique: c.critique, prompt: c.prompt, options: c.options }
+            targets.push(c.targetId)
+          }
+          if (targets.length) result = { source: 'live', persona, byField, targets }
+        }
+      } catch {
+        // server down / aborted: fall back to the static six.
+      }
+      if (gen !== genRef.current) return // superseded
+      roundRef.current = result
+      setRound(result)
       setLoading(false)
     }, 250)
     return () => {
@@ -151,13 +174,15 @@ export default function App() {
     }
   }, [page, activeBrand, screen, persona])
 
-  // Full-page loading treatment only on the initial round (nothing loaded yet);
-  // an Accept re-critique refreshes in place without blacking the comments out.
-  const critiquing = loading && Object.keys(live).length === 0
-  // Render all comments together once the round is in (none while critiquing). A
-  // dot renders if it has a live critique, authored per-persona copy (Ember), or
-  // is a curated concept dot. Resolved to the current persona's voice (M13).
-  const dots = critiquing ? [] : brand.dots.filter((d) => live[d.id] || d.byPersona || d.kind === 'concept').map((d) => mergeDot(d, live[d.id], persona))
+  // Full-page loading treatment only on the very first round (nothing yet); a
+  // persona switch or Accept re-critique refreshes in place.
+  const critiquing = loading && round === null
+  // Render the chosen targets plus the curated concept dot, resolved to the
+  // current persona's voice (live critique wins, else authored copy).
+  const dots =
+    critiquing || !round
+      ? []
+      : brand.dots.filter((d) => d.kind === 'concept' || round.targets.includes(d.field)).map((d) => mergeDot(d, round.persona === persona ? round.byField[d.field] : undefined, persona))
 
   // Derived render model (guardrail 1): during a preview, render from view, not
   // the committed page, so the try-on is visible without committing. A page-level
