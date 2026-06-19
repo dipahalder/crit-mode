@@ -1,71 +1,34 @@
-import { useEffect } from 'react'
-import { brandOrder, brands } from './data/brands'
+import type { CSSProperties } from 'react'
+import { brands, palettes } from './data/brands'
+import type { Page } from './types'
+import PageFrame from './components/PageFrame'
+import EmberLayout from './components/EmberLayout'
+
+// The workspace canvas: a dotted scroll surface that centers the page frame,
+// matching the canvas in Atelier.dc.html. The top app bar, pins, and rail come
+// in later milestones (M4/M5/M6).
+const canvasStyle: CSSProperties = {
+  minHeight: '100vh',
+  overflow: 'auto',
+  backgroundColor: '#f3f3f6',
+  backgroundImage: 'radial-gradient(#e1e1e8 1.1px,transparent 1.1px)',
+  backgroundSize: '17px 17px',
+  padding: '40px 40px 56px',
+}
 
 export default function App() {
-  // M1 verification: log all three brands with their six dots and options.
-  // Open the browser console to confirm the data model loads (see "Done when").
-  useEffect(() => {
-    brandOrder.forEach((key) => {
-      const b = brands[key]
-      console.log(
-        `${b.name} (${b.category}) — ${b.dots.length} dots`,
-        b.dots.map((d) => ({ n: d.n, region: d.region, field: d.field, options: d.options.length })),
-      )
-    })
-    console.log('brands loaded:', brandOrder.map((k) => brands[k].name).join(', '))
-  }, [])
+  // M2 renders Ember only. The page is built from brand defaults + palette key,
+  // and rendered from `view` (guardrail 1). No preview exists yet, so view=page.
+  const brand = brands.ember
+  const page: Page = { ...brand.defaults, palette: brand.palKey }
+  const view = page
+  const pal = palettes[view.palette]
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 14,
-        background: '#f3f3f6',
-        color: '#18181b',
-        fontFamily: "'Manrope', -apple-system, sans-serif",
-        textAlign: 'center',
-        padding: 24,
-      }}
-    >
-      <span
-        style={{
-          fontFamily: "ui-monospace, Menlo, monospace",
-          fontSize: 11,
-          letterSpacing: 1.5,
-          textTransform: 'uppercase',
-          color: '#a1a1aa',
-        }}
-      >
-        Atelier
-      </span>
-      <h1
-        style={{
-          fontFamily: "'Newsreader', serif",
-          fontWeight: 500,
-          fontStyle: 'italic',
-          fontSize: 44,
-          letterSpacing: '-0.5px',
-          margin: 0,
-          color: '#27272a',
-        }}
-      >
-        Design Crit Mode
-      </h1>
-      <p
-        style={{
-          fontFamily: "'Manrope', sans-serif",
-          fontSize: 14.5,
-          color: '#52525b',
-          margin: 0,
-          maxWidth: 360,
-        }}
-      >
-        React, don't describe. Scaffold is live.
-      </p>
+    <div style={canvasStyle}>
+      <PageFrame pal={pal} url={brand.url}>
+        <EmberLayout brand={brand} view={view} />
+      </PageFrame>
     </div>
   )
 }
