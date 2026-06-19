@@ -5,10 +5,14 @@ import PageFrame from './PageFrame'
 import EmberLayout from './EmberLayout'
 import CadenceLayout from './CadenceLayout'
 import MarenLayout from './MarenLayout'
+import CommentsRail from './CommentsRail'
+import Popover from './Popover'
 
-// The workspace canvas: a dotted scroll surface that centers the page frame and
-// renders the active brand's layout, plus a pin overlay anchored to each
-// critiqued region by bounding box (M5).
+// The workspace: a dotted scroll canvas that centers the page frame and renders
+// the active brand's layout, a pin overlay anchored to each critiqued region by
+// bounding box (M5), the critique popover (M7), and the comments rail (M6).
+// Pins and popover are measured in canvas-content coordinates, so they scroll
+// with the page and the popover can float past the frame's clipped edge.
 
 const workspaceStyle: CSSProperties = { flex: 1, minHeight: 0, display: 'flex' }
 
@@ -23,10 +27,10 @@ const canvasStyle: CSSProperties = {
   padding: '40px 40px 56px',
 }
 
-// One pin, centered on its target via translate(-50%,-50%). x/y are in
-// frame-local coordinates, so the pin scrolls with the page for free. No
-// hardcoded coordinates: x/y are measured, not authored.
-function pinStyle(x: number, y: number, pulse: boolean): CSSProperties {
+const POP_WIDTH = 334
+const POP_GAP = 14
+
+function pinStyle(x: number, y: number, open: boolean, pulse: boolean): CSSProperties {
   return {
     position: 'absolute',
     top: y,
@@ -35,7 +39,7 @@ function pinStyle(x: number, y: number, pulse: boolean): CSSProperties {
     width: 27,
     height: 27,
     borderRadius: '50%',
-    background: '#4f46e5',
+    background: open ? '#3730a3' : '#4f46e5',
     color: '#fff',
     border: '2.5px solid #fff',
     fontFamily: '"Manrope", sans-serif',
@@ -44,29 +48,46 @@ function pinStyle(x: number, y: number, pulse: boolean): CSSProperties {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    cursor: 'pointer',
+    padding: 0,
     zIndex: 8,
-    boxShadow: '0 2px 6px rgba(0,0,0,.32)',
-    animation: pulse ? 'ate-ping 1.9s ease-out infinite' : 'none',
+    boxShadow: open ? '0 0 0 5px rgba(79,70,229,.22), 0 3px 8px rgba(0,0,0,.3)' : '0 2px 6px rgba(0,0,0,.32)',
+    animation: !open && pulse ? 'ate-ping 1.9s ease-out infinite' : 'none',
+    transition: 'background .15s ease, box-shadow .15s ease',
   }
 }
 
-interface PinPos {
+// A target's box in canvas-content coordinates.
+interface Measured {
   id: string
   n: number
-  x: number
-  y: number
-  pulse: boolean
+  left: number
+  top: number
+  w: number
+  h: number
 }
 
-export default function Workspace({ brand, view, pal }: { brand: Brand; view: Page; pal: Palette }) {
+export default function Workspace({
+  brand,
+  view,
+  pal,
+  openDot,
+  onOpenNote,
+  onCloseNote,
+}: {
+  brand: Brand
+  view: Page
+  pal: Palette
+  openDot: string | null
+  onOpenNote: (id: string) => void
+  onCloseNote: () => void
+}) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const frameRef = useRef<HTMLDivElement>(null)
-  // field -> critiqued element, populated by the layout via register().
   const targets = useRef(new Map<FieldKey, HTMLElement>())
-  // Stable ref callback per field so element identity churns only on real
-  // mount/unmount (e.g. brand switch), not on every render.
   const refCbs = useRef(new Map<FieldKey, (el: HTMLElement | null) => void>())
-  const [pins, setPins] = useState<PinPos[]>([])
+  const [measured, setMeasured] = useState<Measured[]>([])
+  const [frameBounds, setFrameBounds] = useState<{ left: number; width: number } | null>(null)
 
   const register = useCallback<RegisterTarget>((field) => {
     let cb = refCbs.current.get(field)
@@ -80,28 +101,25 @@ export default function Workspace({ brand, view, pal }: { brand: Brand; view: Pa
     return cb
   }, [])
 
-  // Measure each target's bounding box relative to the frame. Frame-local
-  // coordinates are scroll-stable (frame and elements move together), so pins
-  // stay glued to their regions as the canvas scrolls.
+  // Measure every target's box in canvas-content coordinates (so positions are
+  // scroll-stable). Recomputed on resize/scroll/font-load below.
   const measure = useCallback(() => {
+    const canvas = canvasRef.current
     const frame = frameRef.current
-    if (!frame) return
-    const f = frame.getBoundingClientRect()
-    const next: PinPos[] = []
+    if (!canvas || !frame) return
+    const c = canvas.getBoundingClientRect()
+    const sx = canvas.scrollLeft
+    const sy = canvas.scrollTop
+    const fr = frame.getBoundingClientRect()
+    const next: Measured[] = []
     for (const d of brand.dots) {
       const el = targets.current.get(d.field)
       if (!el) continue
       const r = el.getBoundingClientRect()
-      next.push({
-        id: d.id,
-        n: d.n,
-        x: r.left - f.left - frame.clientLeft + r.width / 2,
-        y: r.top - f.top - frame.clientTop + r.height / 2,
-        // Headline pin pulses at rest; no note can be open yet (popover is M7).
-        pulse: d.id === 'headline',
-      })
+      next.push({ id: d.id, n: d.n, left: r.left - c.left + sx, top: r.top - c.top + sy, w: r.width, h: r.height })
     }
-    setPins(next)
+    setMeasured(next)
+    setFrameBounds({ left: fr.left - c.left + sx, width: fr.width })
   }, [brand])
 
   useLayoutEffect(() => {
@@ -116,14 +134,12 @@ export default function Workspace({ brand, view, pal }: { brand: Brand; view: Pa
       raf = requestAnimationFrame(measure)
     }
 
-    // Layout shifts: palette/font swaps, content reflow, brand height changes.
     const ro = new ResizeObserver(schedule)
     ro.observe(frame)
     ro.observe(canvas)
     window.addEventListener('resize', schedule)
     canvas.addEventListener('scroll', schedule, { passive: true })
 
-    // Web fonts change text metrics after first paint; re-measure when ready.
     let cancelled = false
     if (document.fonts?.ready) {
       document.fonts.ready.then(() => {
@@ -140,6 +156,58 @@ export default function Workspace({ brand, view, pal }: { brand: Brand; view: Pa
     }
   }, [measure])
 
+  // Scroll the canvas to bring a dot's region into view (~150px from the top,
+  // horizontally centered), mirroring the prototype's scrollToDot.
+  const scrollToDot = useCallback(
+    (id: string) => {
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const d = brand.dots.find((x) => x.id === id)
+      if (!d) return
+      const el = targets.current.get(d.field)
+      if (!el) return
+      const c = canvas.getBoundingClientRect()
+      const r = el.getBoundingClientRect()
+      const top = Math.max(0, r.top - c.top + canvas.scrollTop - 150)
+      const left = Math.max(0, r.left - c.left + canvas.scrollLeft + r.width / 2 - canvas.clientWidth / 2)
+      canvas.scrollTo({ top, left, behavior: 'smooth' })
+    },
+    [brand],
+  )
+
+  // Open/toggle a note from a pin or a rail row; scroll to it when opening.
+  const handleOpen = useCallback(
+    (id: string) => {
+      const willOpen = openDot !== id
+      onOpenNote(id)
+      if (willOpen) scrollToDot(id)
+    },
+    [openDot, onOpenNote, scrollToDot],
+  )
+
+  // Popover placement (M7): open opposite the element so it stays visible.
+  // Left-ish element opens right, right-ish opens left, centered opens below.
+  const openMeasured = openDot ? measured.find((m) => m.id === openDot) : undefined
+  const openDotData = openDot ? brand.dots.find((d) => d.id === openDot) : undefined
+  let pop: { left: number; top: number } | null = null
+  if (openMeasured && frameBounds) {
+    const cx = openMeasured.left + openMeasured.w / 2
+    const frac = (cx - frameBounds.left) / frameBounds.width
+    let left: number
+    let top: number
+    if (frac < 0.42) {
+      left = openMeasured.left + openMeasured.w + POP_GAP
+      top = openMeasured.top
+    } else if (frac > 0.58) {
+      left = openMeasured.left - POP_WIDTH - POP_GAP
+      top = openMeasured.top
+    } else {
+      left = cx - POP_WIDTH / 2
+      top = openMeasured.top + openMeasured.h + POP_GAP
+    }
+    pop = { left: Math.max(8, left), top: Math.max(8, top) }
+  }
+
   return (
     <div style={workspaceStyle}>
       <div ref={canvasRef} style={canvasStyle}>
@@ -147,15 +215,23 @@ export default function Workspace({ brand, view, pal }: { brand: Brand; view: Pa
           {brand.key === 'ember' && <EmberLayout brand={brand} view={view} register={register} />}
           {brand.key === 'cadence' && <CadenceLayout brand={brand} view={view} register={register} />}
           {brand.key === 'maren' && <MarenLayout brand={brand} view={view} register={register} />}
-
-          {/* Pin overlay, inside the frame so pins scroll with the page. */}
-          {pins.map((p) => (
-            <div key={p.id} style={pinStyle(p.x, p.y, p.pulse)}>
-              {p.n}
-            </div>
-          ))}
         </PageFrame>
+
+        {/* Pin overlay (canvas-content coords; scrolls with the page). */}
+        {measured.map((m) => {
+          const isOpen = openDot === m.id
+          const pulse = openDot == null && m.id === 'headline'
+          return (
+            <button key={m.id} type="button" onClick={() => handleOpen(m.id)} style={pinStyle(m.left + m.w / 2, m.top + m.h / 2, isOpen, pulse)}>
+              {m.n}
+            </button>
+          )
+        })}
+
+        {pop && openDotData && <Popover dot={openDotData} left={pop.left} top={pop.top} onClose={onCloseNote} />}
       </div>
+
+      <CommentsRail brand={brand} openDot={openDot} onRowClick={handleOpen} />
     </div>
   )
 }

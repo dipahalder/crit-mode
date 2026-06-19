@@ -27,6 +27,18 @@ body {
   min-height: 100vh;
 }
 
+/* Popover entrance, lifted verbatim from Atelier.dc.html (M7). */
+@keyframes ate-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* Pin pulse, lifted verbatim from Atelier.dc.html. The headline pin runs this
    at rest (no note open) to invite the first click (M5). */
 @keyframes ate-ping {

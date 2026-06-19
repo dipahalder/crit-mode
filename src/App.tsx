@@ -28,17 +28,27 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('start')
   const [activeBrand, setActiveBrand] = useState<BrandKey>('ember')
   const [page, setPage] = useState<Page>(() => ({ ...brands.ember.defaults, palette: brands.ember.palKey }))
+  const [openDot, setOpenDot] = useState<string | null>(null)
 
   // chooseBrand: reset the page to the brand's defaults + palette, enter the
-  // workspace (versions/lineage reset is wired in M9). switchBrand returns to
-  // the picker. (CLAUDE.md state transitions.)
+  // workspace, clear any open note (versions/lineage reset is wired in M9).
+  // switchBrand returns to the picker. (CLAUDE.md state transitions.)
   function chooseBrand(key: BrandKey) {
     setActiveBrand(key)
     setPage({ ...brands[key].defaults, palette: brands[key].palKey })
+    setOpenDot(null)
     setScreen('workspace')
   }
   function switchBrand() {
+    setOpenDot(null)
     setScreen('start')
+  }
+  // openNote toggles the open dot (preview clearing is wired in M8).
+  function openNote(id: string) {
+    setOpenDot((cur) => (cur === id ? null : id))
+  }
+  function closeNote() {
+    setOpenDot(null)
   }
 
   const brand = brands[activeBrand]
@@ -50,7 +60,11 @@ export default function App() {
       <TopBar isWorkspace={screen === 'workspace'} brandLabel={clean(`${brand.name} · ${brand.category}`)} onStartOver={switchBrand} />
 
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        {screen === 'start' ? <StartScreen onChoose={chooseBrand} /> : <Workspace brand={brand} view={view} pal={pal} />}
+        {screen === 'start' ? (
+          <StartScreen onChoose={chooseBrand} />
+        ) : (
+          <Workspace brand={brand} view={view} pal={pal} openDot={openDot} onOpenNote={openNote} onCloseNote={closeNote} />
+        )}
       </div>
 
       {/* TEMPORARY (M3 check): switch page.palette to watch the recolor. */}
