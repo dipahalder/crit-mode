@@ -31,29 +31,23 @@ const canvasStyle: CSSProperties = {
 const POP_WIDTH = 334
 const POP_GAP = 14
 
-function pinStyle(x: number, y: number, open: boolean, pulse: boolean): CSSProperties {
+function pinStyle(x: number, y: number, open: boolean): CSSProperties {
   return {
     position: 'absolute',
     top: y,
     left: x,
     transform: 'translate(-50%,-50%)',
-    width: 27,
-    height: 27,
+    width: 18,
+    height: 18,
     borderRadius: '50%',
     background: open ? '#0E6FCB' : '#1684EC',
-    color: '#fff',
     border: 'none',
-    fontFamily: '"Manrope", sans-serif',
-    fontWeight: 800,
-    fontSize: 12.5,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
     cursor: 'pointer',
     padding: 0,
     zIndex: 8,
     boxShadow: open ? '0 0 0 5px rgba(22,132,236,.22), 0 3px 8px rgba(0,0,0,.3)' : '0 2px 6px rgba(0,0,0,.32)',
-    animation: !open && pulse ? 'ate-ping 1.9s ease-out infinite' : 'none',
+    // Pins bounce in, then pulse at rest; the open pin shows the solid ring.
+    animation: open ? 'none' : 'ate-pin-in .4s cubic-bezier(.2,.9,.3,1.3) both, ate-ping 1.9s ease-out infinite',
     transition: 'background .15s ease, box-shadow .15s ease',
   }
 }
@@ -78,7 +72,7 @@ export default function Workspace({
   preview,
   resolvedDots,
   versions,
-  loadingIds,
+  critiquing,
   onOpenNote,
   onCloseNote,
   onPreviewOption,
@@ -93,7 +87,7 @@ export default function Workspace({
   preview: Preview | null
   resolvedDots: Record<string, string>
   versions: Version[]
-  loadingIds: string[]
+  critiquing: boolean
   onOpenNote: (id: string) => void
   onCloseNote: () => void
   onPreviewOption: (next: Preview) => void
@@ -105,6 +99,14 @@ export default function Workspace({
   const refCbs = useRef(new Map<FieldKey, (el: HTMLElement | null) => void>())
   const [measured, setMeasured] = useState<Measured[]>([])
   const [frameBounds, setFrameBounds] = useState<{ left: number; width: number } | null>(null)
+  // Hide-comments toggle (top of the rail): hides pins, popover, and rows.
+  const [showComments, setShowComments] = useState(true)
+  const toggleComments = useCallback(() => {
+    setShowComments((s) => {
+      if (s) onCloseNote() // hiding: close any open note
+      return !s
+    })
+  }, [onCloseNote])
 
   const register = useCallback<RegisterTarget>((field) => {
     let cb = refCbs.current.get(field)
@@ -228,27 +230,21 @@ export default function Workspace({
   return (
     <div style={workspaceStyle}>
       <LineageStrip versions={versions} />
-      <div ref={canvasRef} style={canvasStyle}>
-        <PageFrame ref={frameRef} pal={pal} url={brand.url}>
+      <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex' }}>
+        <div ref={canvasRef} style={canvasStyle}>
+        <PageFrame ref={frameRef} pal={pal} url={brand.url} loading={critiquing}>
           {brand.key === 'ember' && <EmberLayout brand={brand} view={view} register={register} />}
           {brand.key === 'cadence' && <CadenceLayout brand={brand} view={view} register={register} />}
           {brand.key === 'maren' && <MarenLayout brand={brand} view={view} register={register} />}
         </PageFrame>
 
         {/* Pin overlay (canvas-content coords; scrolls with the page). */}
-        {measured.map((m) => {
-          const isOpen = openDot === m.id
-          // Pulse while this dot's critique is loading (thinking), or the
-          // headline pin at rest to invite the first click.
-          const pulse = loadingIds.includes(m.id) || (openDot == null && m.id === 'headline')
-          return (
-            <button key={m.id} type="button" onClick={() => handleOpen(m.id)} style={pinStyle(m.left + m.w / 2, m.top + m.h / 2, isOpen, pulse)}>
-              {m.n}
-            </button>
-          )
-        })}
+        {showComments &&
+          measured.map((m) => (
+            <button key={m.id} type="button" aria-label="Open critique" onClick={() => handleOpen(m.id)} style={pinStyle(m.left + m.w / 2, m.top + m.h / 2, openDot === m.id)} />
+          ))}
 
-        {pop && openDotData && (
+        {showComments && pop && openDotData && (
           <Popover
             dot={openDotData}
             left={pop.left}
@@ -260,9 +256,24 @@ export default function Workspace({
             onAccept={(opt) => onAcceptOption(openDotData, opt)}
           />
         )}
+        </div>
+
+        {/* "Critiquing..." floats over the dimmed design while the round loads. */}
+        {critiquing && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#fff', border: '1px solid #e6e6ec', borderRadius: 999, padding: '12px 20px', boxShadow: '0 18px 50px -16px rgba(20,16,30,.3)', fontSize: 14, fontWeight: 600, color: '#4f46e5' }}>
+              Critiquing the page
+              <span style={{ display: 'inline-flex', gap: 3 }}>
+                {[0, 0.16, 0.32].map((d) => (
+                  <span key={d} style={{ width: 5, height: 5, borderRadius: '50%', background: '#4f46e5', animation: 'ate-blink 1.2s ease-in-out infinite', animationDelay: `${d}s` }} />
+                ))}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
-      <CommentsRail dots={dots} openDot={openDot} resolvedDots={resolvedDots} onRowClick={handleOpen} />
+      <CommentsRail dots={dots} openDot={openDot} resolvedDots={resolvedDots} showComments={showComments} onToggleComments={toggleComments} onRowClick={handleOpen} />
     </div>
   )
 }

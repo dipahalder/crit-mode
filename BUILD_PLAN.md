@@ -180,6 +180,23 @@ below is additive. If you run out of time here, you still have a full product.
   records a version, and the element-level critiques still work unchanged.
 - **Commit:** `feat: page-level concept critique that reflows the layout`
 
+## M13 - Critic personas (toggle the point of view)
+- **Goal:** the same page can be critiqued by four different "people," and each comment reads as though that person left it.
+- **Build:** add a `PERSONAS` list of four, each with `id`, `name`, `role`, `initials`, and an avatar `color`:
+  - `designer` - Jacob, staff product designer. Cares about craft, hierarchy, and whether it holds together as a brand.
+  - `cd` - Theo, creative director. Cares about the big idea, originality, and whether it is brave or generic.
+  - `ceo` - Jennifer, founder and CEO. Cares about positioning, differentiation, and what it says about the company.
+  - `user` - Sam, first-time visitor. Cares about clarity and trust, whether they instantly get what it is.
+  Add `state.persona` defaulting to `'designer'`. A persona changes the comment and the attribution only, never the `page`, the `versions`, the `resolvedDots`, or the fan-out option values; the persona owns the observation, the tool still owns the actionable directions. Author the demo brand (Ember) critiques in all four voices as `dot.byPersona = { designer:{critique,prompt}, cd:{...}, ceo:{...}, user:{...} }`, with `designer` required and the others optional, resolving to `designer` when missing. Let Cadence and Maren fall back to `designer` or rely on the LLM. Add a persona switcher to the comments-rail header: a small segmented control of avatar chips with a subtitle like "Critiquing as Maya, staff designer." Add an attribution header (avatar chip plus name and role) on every comment row and popover, so each note reads as that person. If M11 is in place, pass `persona` to `/critique` and layer the persona voice onto the system prompt: speak in this person's voice and priorities, but keep every structural rule (a taste position not a correction, end on a question, taste-different options never ranked, never em dashes); change what is noticed and how it is said, not the structure. On switch, keep `page`, `versions`, `resolvedDots`, and any open popover intact and just re-render the critique text in the new voice; leaving the popover open while toggling lets you watch the same note get rephrased live. In the LLM path, re-fetch the visible dots for the new persona, debounced, with pins pulsing while they load. Run `clean()` on all persona copy.
+- **Done when:** toggling between the four personas on Ember rephrases every critique in that person's voice and updates the avatar, name, and role on each comment, while the page content, accepted changes, and lineage stay exactly as they were. With the server stopped, the toggle still works on Ember from the authored fallback text. Searching the rendered text for em dashes returns nothing.
+- **Commit:** `feat: critic personas with per-persona voice and attribution`
+
+
+## M14 - LLM-chosen critique targets (dynamic dots per design)
+- **Goal:** the LLM decides what to comment on for a given page, so different designs get different pins instead of a fixed six.
+- **Build:** the LLM chooses targets, never coordinates. Annotate every critique-able element with a stable `data-crit-id` at render, and build an inventory: `[{ id, kind:'heading'|'cta'|'image'|'body'|'social'|'section', text, section, field|null }]`. Send the inventory to `/critique` and have the model return a variable number of critiques (cap 4 to 7), each `{ targetId, critique, prompt, options }`, biased to the composition and concept level, spread across the page rather than clustered. Resolve each `targetId` to the live element and derive the pin and popover position from its bounding box (the M5 mechanism and the M7 placement rule). Number pins top-to-bottom in DOM order once the set is final. Validate: drop critiques whose `targetId` is missing or whose option values do not match the target's editable type, de-dupe targets, enforce the cap, and nudge overlapping pins apart. Constrain targets to elements with an editable `field` so Accept still works. On any failure or timeout, fall back to the static six dots for that brand.
+- **Done when:** generating critiques for each brand produces a different set of pins, each correctly anchored to its element and re-anchoring on resize, with no two pins overlapping. With the server off, the page falls back to the static six dots. The LLM never emits pixel coordinates.
+- **Commit:** `feat: llm-chosen critique targets with bbox-derived positions`
 ---
 
 ## Verification mindset

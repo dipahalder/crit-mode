@@ -44,10 +44,10 @@ const chromeDot = (background: string): CSSProperties => ({
   background,
 })
 
-const PageFrame = forwardRef<HTMLDivElement, { pal: Palette; url: string; children: ReactNode }>(
-  function PageFrame({ pal, url, children }, ref) {
+const PageFrame = forwardRef<HTMLDivElement, { pal: Palette; url: string; loading?: boolean; children: ReactNode }>(
+  function PageFrame({ pal, url, loading, children }, ref) {
     return (
-      <div ref={ref} style={frameStyle(pal)}>
+      <div ref={ref} className={loading ? 'ate-dim' : undefined} style={frameStyle(pal)}>
       {/* Browser-chrome bar: three dots + a centered URL pill. */}
       <div
         style={{

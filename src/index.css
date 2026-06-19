@@ -27,6 +27,57 @@ body {
   min-height: 100vh;
 }
 
+/* While critiques load (M11): the design dims and is non-interactive; a
+   "Critiquing..." card floats over it, then the comments bounce in. */
+.ate-dim {
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+/* Pins bounce in when comments appear (translate kept so they stay centered). */
+@keyframes ate-pin-in {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Rail rows rise + bounce in. */
+@keyframes ate-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+.ate-in {
+  animation: ate-rise 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+}
+
+/* Loading dots for the "Critiquing..." state while LLM critiques load (M11). */
+@keyframes ate-blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.2;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
 /* Cross-fade applied to a region when its committed value changes (M9). The
    element is keyed on its value, so React remounts it and this replays. */
 @keyframes ate-fade {

@@ -10,9 +10,13 @@ export type BrandKey = 'ember' | 'cadence' | 'maren'
 export type PaletteKey = 'warmEarthy' | 'bold' | 'cream' | 'cadence' | 'maren'
 
 // The editable fields of a page. Every dot patches exactly one of these.
-export type FieldKey = 'headline' | 'subhead' | 'cta' | 'heroImg' | 'social' | 'palette'
+// 'concept' is the structural field (M12): it reflows the layout, not just copy.
+export type FieldKey = 'headline' | 'subhead' | 'cta' | 'heroImg' | 'social' | 'palette' | 'concept'
 
-export type DotKind = 'text' | 'palette'
+// The page-level structural concept (M12). Drives hero treatment + section order.
+export type Concept = 'product-led' | 'ritual-led' | 'origin-led'
+
+export type DotKind = 'text' | 'palette' | 'concept'
 
 export type Screen = 'start' | 'workspace'
 
@@ -44,7 +48,7 @@ export interface Palette {
   dispLs: string
 }
 
-// page : { headline, subhead, cta, heroImg, social, palette }
+// page : { headline, subhead, cta, heroImg, social, palette, concept }
 export interface Page {
   headline: string
   subhead: string
@@ -52,15 +56,19 @@ export interface Page {
   heroImg: string
   social: string
   palette: PaletteKey
+  concept: Concept
 }
 
 // option : { id, value, vibe, tag, swatch? }  // swatch only for palette options
+// patch (M12) carries a coordinated multi-field change for page-level (concept)
+// options; element-level options omit it and patch a single field by value.
 export interface Option {
   id: string
   value: string
   vibe: string
   tag: string
   swatch?: string[]
+  patch?: Partial<Page>
 }
 
 // dot : { id, n, kind, region, field, critique, prompt, options }
@@ -85,12 +93,13 @@ export interface Version {
   note: string
 }
 
-// preview : { dotId, optId, field, value } | null
+// preview : { dotId, optId, field, value, patch? } | null
 export interface Preview {
   dotId: string
   optId: string
   field: FieldKey
   value: string
+  patch?: Partial<Page>
 }
 
 // state : { screen, activeBrand, openDot, page, preview, resolvedDots,

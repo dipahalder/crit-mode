@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { brands, palettes } from './data/brands'
 import type { BrandKey, CritiqueResponse, Dot, Option, Page, PaletteKey, Preview, Screen, Version } from './types'
@@ -17,7 +17,8 @@ function mergeDot(d: Dot, live: CritiqueResponse | undefined): Dot {
     ...d,
     critique: live.critique,
     prompt: live.prompt,
-    options: live.options.map((o, i) => ({ id: `llm-${i}`, value: o.value, vibe: o.vibe, tag: o.tag })),
+    // Up to three options per swap.
+    options: live.options.slice(0, 3).map((o, i) => ({ id: `llm-${i}`, value: o.value, vibe: o.vibe, tag: o.tag })),
   }
 }
 
@@ -36,14 +37,17 @@ const appShell: CSSProperties = {
 export default function App() {
   const [screen, setScreen] = useState<Screen>('start')
   const [activeBrand, setActiveBrand] = useState<BrandKey>('ember')
-  const [page, setPage] = useState<Page>(() => ({ ...brands.ember.defaults, palette: brands.ember.palKey }))
+  const [page, setPage] = useState<Page>(() => ({ ...brands.ember.defaults, palette: brands.ember.palKey, concept: 'product-led' }))
   const [openDot, setOpenDot] = useState<string | null>(null)
   const [preview, setPreview] = useState<Preview | null>(null)
   const [resolvedDots, setResolvedDots] = useState<Record<string, string>>({})
   const [versions, setVersions] = useState<Version[]>([])
-  // Live critiques keyed by dot id, and the dots currently being fetched (M11).
+  // Live critiques keyed by dot id, and whether a fetch round is in flight (M11).
   const [live, setLive] = useState<Record<string, CritiqueResponse>>({})
-  const [loadingIds, setLoadingIds] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+  // Generation counter so only the latest fetch round applies its results (keeps
+  // a comment's text stable once shown, and tolerates React StrictMode).
+  const genRef = useRef(0)
 
   // chooseBrand: reset the page to the brand's defaults + palette, reset the
   // lineage to v1, clear any open note and preview, enter the workspace.
@@ -51,7 +55,7 @@ export default function App() {
   function chooseBrand(key: BrandKey) {
     const br = brands[key]
     setActiveBrand(key)
-    setPage({ ...br.defaults, palette: br.palKey })
+    setPage({ ...br.defaults, palette: br.palKey, concept: 'product-led' })
     setResolvedDots({})
     setVersions([{ n: 1, palette: br.palKey, headline: br.defaults.headline, note: 'Starting point' }])
     setOpenDot(null)
@@ -83,9 +87,11 @@ export default function App() {
   // accept commits an option: write page[field], mark the dot resolved, push a
   // version, and clear the open note + preview. (CLAUDE.md accept transition.)
   function accept(dot: Dot, opt: Option) {
-    const newPage: Page = { ...page, [dot.field]: opt.value } as Page
-    const palKey: PaletteKey = dot.field === 'palette' ? (opt.value as PaletteKey) : page.palette
-    const chosen = dot.field === 'palette' ? `${opt.vibe} palette` : opt.value
+    // A page-level option carries a coordinated multi-field patch (M12); an
+    // element-level option patches its single field by value.
+    const newPage: Page = (opt.patch ? { ...page, ...opt.patch } : { ...page, [dot.field]: opt.value }) as Page
+    const palKey: PaletteKey = dot.field === 'palette' ? (opt.value as PaletteKey) : newPage.palette
+    const chosen = dot.field === 'palette' ? `${opt.vibe} palette` : dot.field === 'concept' ? `${opt.vibe} layout` : opt.value
     setPage(newPage)
     setResolvedDots((r) => ({ ...r, [dot.id]: chosen }))
     setVersions((v) => [...v, { n: v.length + 1, palette: palKey, headline: newPage.headline, note: dot.region }])
@@ -101,12 +107,17 @@ export default function App() {
   // dependency is what makes the next round reflect the changed page.
   useEffect(() => {
     if (screen !== 'workspace') return
-    const dots = brands[activeBrand].dots
+    // The concept dots (M12) are curated, not LLM-generated; skip them.
+    const fetchDots = brands[activeBrand].dots.filter((d) => d.field !== 'concept')
+    if (fetchDots.length === 0) return
+    const gen = ++genRef.current
+    setLoading(true)
     const ctrl = new AbortController()
-    const timer = setTimeout(() => {
-      setLoadingIds(dots.map((d) => d.id))
-      dots.forEach(async (d) => {
-        try {
+    const timer = setTimeout(async () => {
+      // Fetch every region in parallel and apply the whole round at once, so all
+      // comments appear together (no piecemeal popping in).
+      const results = await Promise.allSettled(
+        fetchDots.map(async (d) => {
           const r = await fetch('/critique', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
@@ -114,14 +125,14 @@ export default function App() {
             signal: ctrl.signal,
           })
           if (!r.ok) throw new Error(`status ${r.status}`)
-          const data: CritiqueResponse = await r.json()
-          if (!ctrl.signal.aborted) setLive((prev) => ({ ...prev, [d.id]: data }))
-        } catch {
-          // server down, network error, or aborted: keep the static critique.
-        } finally {
-          if (!ctrl.signal.aborted) setLoadingIds((prev) => prev.filter((id) => id !== d.id))
-        }
-      })
+          return [d.id, (await r.json()) as CritiqueResponse] as const
+        }),
+      )
+      if (gen !== genRef.current) return // a newer round superseded this one
+      const next: Record<string, CritiqueResponse> = {}
+      for (const res of results) if (res.status === 'fulfilled') next[res.value[0]] = res.value[1]
+      setLive((prev) => ({ ...prev, ...next }))
+      setLoading(false)
     }, 250)
     return () => {
       clearTimeout(timer)
@@ -129,12 +140,17 @@ export default function App() {
     }
   }, [page, activeBrand, screen])
 
-  // Effective dots: static dots with any live critique merged over them.
-  const dots = brand.dots.map((d) => mergeDot(d, live[d.id]))
+  // Full-page loading treatment only on the initial round (nothing loaded yet);
+  // an Accept re-critique refreshes in place without blacking the comments out.
+  const critiquing = loading && Object.keys(live).length === 0
+  // Render all comments together once the round is in (none while critiquing).
+  // A comment whose fetch failed simply never appears. Concept dots are curated.
+  const dots = critiquing ? [] : brand.dots.filter((d) => d.field === 'concept' || live[d.id]).map((d) => mergeDot(d, live[d.id]))
 
   // Derived render model (guardrail 1): during a preview, render from view, not
-  // the committed page, so the try-on is visible without committing.
-  const view: Page = preview ? ({ ...page, [preview.field]: preview.value } as Page) : page
+  // the committed page, so the try-on is visible without committing. A page-level
+  // preview applies its whole patch (M12).
+  const view: Page = preview ? ({ ...page, ...(preview.patch ?? { [preview.field]: preview.value }) } as Page) : page
   const pal = palettes[view.palette]
 
   return (
@@ -155,7 +171,7 @@ export default function App() {
             preview={preview}
             resolvedDots={resolvedDots}
             versions={versions}
-            loadingIds={loadingIds}
+            critiquing={critiquing}
             onOpenNote={openNote}
             onCloseNote={closeNote}
             onPreviewOption={previewOption}

@@ -40,6 +40,7 @@ export default function Popover({
   onAccept: (opt: Option) => void
 }) {
   const isPalette = dot.kind === 'palette'
+  const isConcept = dot.kind === 'concept'
   const previewingThisDot = !!(preview && preview.dotId === dot.id)
 
   return (
@@ -61,7 +62,7 @@ export default function Popover({
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
         <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '1px', color: '#4f46e5', display: 'flex', alignItems: 'center', gap: 7 }}>
-          <span style={{ width: 17, height: 17, borderRadius: '50%', background: '#4f46e5', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>{dot.n}</span>
+          <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#1684EC' }} />
           {clean(dot.region)}
         </span>
         <button
@@ -92,7 +93,7 @@ export default function Popover({
           return (
             <div
               key={opt.id}
-              onClick={clickable ? () => onPreviewOption({ dotId: dot.id, optId: opt.id, field: dot.field, value: opt.value }) : undefined}
+              onClick={clickable ? () => onPreviewOption({ dotId: dot.id, optId: opt.id, field: dot.field, value: opt.value, patch: opt.patch }) : undefined}
               style={{
                 ...cardBase,
                 cursor: clickable ? 'pointer' : 'default',
@@ -109,6 +110,12 @@ export default function Popover({
                   </div>
                   <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: '#18181b' }}>{clean(opt.vibe)}</div>
                 </>
+              ) : isConcept ? (
+                // Concept cards: the layout name + the headline it brings.
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.35, color: '#18181b' }}>{clean(opt.vibe)}</div>
+                  <div style={{ fontSize: 11, color: '#a1a1aa', marginTop: 3 }}>{clean(opt.patch?.headline ?? '')}</div>
+                </div>
               ) : (
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.35, color: '#18181b' }}>{clean(opt.value)}</div>

@@ -20,18 +20,19 @@ const BRAND_KEYS: BrandKey[] = ['ember', 'cadence', 'maren']
 const FIELD_KEYS: FieldKey[] = ['headline', 'subhead', 'cta', 'heroImg', 'social', 'palette']
 const PALETTE_VALUES = paletteOptions.map((o) => o.value) // warmEarthy | bold | cream
 
-// The system prompt from CLAUDE.md, verbatim.
+// System prompt (based on CLAUDE.md, tightened for brevity).
 const SYSTEM_PROMPT = `You are a staff-level product designer giving crit on a landing page region.
-Write the critique as a taste position, not a correction. Be specific about the
-element and what it is doing. Tie it to the brand's positioning or the user's
-moment, never to personal taste. End on a genuine question that opens a choice,
-never a command. One observation, two short sentences maximum. Bias toward the
-composition and concept level, not small cosmetic nits.
+Write the critique as a taste position, not a correction: one specific
+observation, tied to the brand's positioning or the user's moment, never to
+personal taste. Bias toward composition and concept, not cosmetic nits.
 
-Produce 2 to 4 options that are genuinely different aesthetic directions, never
-ranked, never "the better version." Each option: a short vibe descriptor and the
-concrete value to apply. Keep them diverse and de-dupe against tags the user has
-already accepted or dismissed.
+Be concise. The "critique" is at most two short sentences, about 25 words total.
+The "prompt" is a brief call to choose, for example "Pick a headline direction:"
+or "Try a different mood:", under eight words.
+
+Produce 2 to 3 options that are genuinely different aesthetic directions, never
+ranked, never "the better version." Each option has a short vibe descriptor and
+the concrete value to apply.
 
 Never use em dashes or en dashes. Use periods or commas. Do not use growth
 marketing language such as convert, CTR, or urgency. Return JSON only, no prose,
@@ -89,8 +90,9 @@ function validate(parsed: unknown, region: FieldKey): CritiqueResponse {
   return {
     critique: clean(p.critique),
     prompt: clean(p.prompt),
-    // Palette options stay canonical (fixed values + swatches); text options use the model's.
-    options: region === 'palette' ? paletteOptions.map((o) => ({ value: o.value, vibe: clean(o.vibe), tag: clean(o.tag), swatch: o.swatch })) : options,
+    // Palette options stay canonical (fixed values + swatches); text options use
+    // the model's, capped at three.
+    options: region === 'palette' ? paletteOptions.map((o) => ({ value: o.value, vibe: clean(o.vibe), tag: clean(o.tag), swatch: o.swatch })) : options.slice(0, 3),
   }
 }
 
@@ -106,7 +108,7 @@ Current value: ${JSON.stringify(currentValue)}.
 Full current page model: ${JSON.stringify(pageModel)}.
 Persona: ${persona || 'a thoughtful founder shaping this page'}.
 
-Critique this one region for this brand and page, then offer 2 to 4 taste-different options for it.${paletteNote}
+Critique this one region for this brand and page, then offer 2 to 3 taste-different options for it. Keep the critique to two short sentences and the prompt to a few words.${paletteNote}
 Return JSON only, shaped exactly: {"critique": string, "prompt": string, "options": [{"value": string, "vibe": string, "tag": string}]}.`
 
   const message = await client!.messages.create({

@@ -101,6 +101,28 @@ const ember: Brand = {
         { id: 'origin', value: 'Sourced from 9 farms we visit each harvest', vibe: 'Provenance', tag: 'Provenance as proof' },
       ],
     },
+    // Page-level concept (M12): each option is a coordinated multi-field patch
+    // that reflows the whole page (hero treatment + section order + copy), not a
+    // single field. Ember-only, to keep the other brands faithful to the spec.
+    {
+      id: 'concept', n: 7, kind: 'concept', region: 'Page concept', field: 'concept',
+      critique: 'The page is built product-first, but Ember\'s real pull is the ritual and the origins. Should the whole page lead with a different story?',
+      prompt: 'Reorganize the page around one idea:',
+      options: [
+        {
+          id: 'product', value: 'product-led', vibe: 'Product-led', tag: 'Product-led layout',
+          patch: { concept: 'product-led', headline: 'This month, three fresh roasts.', subhead: 'A rotating selection of single-origin coffees, picked and roasted to order.', heroImg: "This month's lineup", social: '4.9 average across 2,300 reviews' },
+        },
+        {
+          id: 'ritual', value: 'ritual-led', vibe: 'Ritual-led', tag: 'Ritual-led layout',
+          patch: { concept: 'ritual-led', headline: 'Your best morning, on repeat.', subhead: 'A standing invitation to slow down for ten good minutes every day.', heroImg: 'Pour-over in morning light', social: 'Trusted by 12,000 home baristas' },
+        },
+        {
+          id: 'origin', value: 'origin-led', vibe: 'Origin-led', tag: 'Origin-led layout',
+          patch: { concept: 'origin-led', headline: 'A farm behind every bag.', subhead: 'Sourced from nine farms we visit each harvest, roasted the morning it ships.', heroImg: 'Hands at the origin farm', social: 'Sourced from 9 farms we visit each harvest' },
+        },
+      ],
+    },
   ],
 }
 
@@ -174,6 +196,17 @@ const cadence: Brand = {
         { id: 'team', value: 'Built by the team behind tools you use daily', vibe: 'Credibility', tag: 'Maker credibility' },
       ],
     },
+    // Page-level concept (M12): reflows the hero treatment + feature/stats order.
+    {
+      id: 'concept', n: 7, kind: 'concept', region: 'Page concept', field: 'concept',
+      critique: 'The page leads with features, but Cadence sells a calmer week. Should it lead with the outcome or the makers instead?',
+      prompt: 'Reframe the whole page:',
+      options: [
+        { id: 'feature', value: 'product-led', vibe: 'Feature-led', tag: 'Feature-led layout', patch: { concept: 'product-led', headline: 'Plan less. Do more.', subhead: 'Cadence turns scattered tasks into one calm timeline you will actually follow.', heroImg: 'timeline', social: 'Powering focused teams at' } },
+        { id: 'outcome', value: 'ritual-led', vibe: 'Outcome-led', tag: 'Outcome-led layout', patch: { concept: 'ritual-led', headline: 'Get six hours back every week.', subhead: 'Let Cadence plan the week around you, and reclaim the time you spend deciding.', heroImg: 'weekly review', social: 'Members reclaim 6 hours a week' } },
+        { id: 'maker', value: 'origin-led', vibe: 'Maker-led', tag: 'Maker-led layout', patch: { concept: 'origin-led', headline: 'Built by people with too much to do.', subhead: 'Made by a small team who needed a calmer week, then shipped the tool that gave it.', heroImg: 'focus mode', social: 'Built by the team behind tools you use daily' } },
+      ],
+    },
   ],
 }
 
@@ -241,6 +274,17 @@ const maren: Brand = {
         { id: 'reviews', value: '4.8 from 11,000 verified reviews', vibe: 'Earned · specific', tag: 'Specific review proof' },
         { id: 'result', value: '92% saw calmer skin in four weeks', vibe: 'Outcome · clinical', tag: 'Clinical outcome proof' },
         { id: 'press', value: 'As seen in Vogue, Byrdie & Goop', vibe: 'Editorial', tag: 'Editorial credibility' },
+      ],
+    },
+    // Page-level concept (M12): reflows the hero treatment + section order.
+    {
+      id: 'concept', n: 7, kind: 'concept', region: 'Page concept', field: 'concept',
+      critique: "The page leads with the product range, but Maren's pull is the ritual and the proof. Should it lead with a different story?",
+      prompt: 'Reorganize the page:',
+      options: [
+        { id: 'essentials', value: 'product-led', vibe: 'Essentials-led', tag: 'Essentials-led layout', patch: { concept: 'product-led', headline: 'Five essentials. Better skin.', subhead: 'A short, considered routine of five products and nothing you do not need.', heroImg: 'Product still life', social: 'Recommended by 200+ dermatologists' } },
+        { id: 'ritual', value: 'ritual-led', vibe: 'Ritual-led', tag: 'Ritual-led layout', patch: { concept: 'ritual-led', headline: 'A quiet routine that works.', subhead: 'Three calm steps, morning and night, that your skin will actually keep up with.', heroImg: 'On real skin, morning light', social: '4.8 from 11,000 verified reviews' } },
+        { id: 'proof', value: 'origin-led', vibe: 'Proof-led', tag: 'Proof-led layout', patch: { concept: 'origin-led', headline: 'Clinically proven, quietly made.', subhead: 'Dermatologist formulated, fragrance free, and proven in independent testing.', heroImg: 'Texture macro, the cream itself', social: '92% saw calmer skin in four weeks' } },
       ],
     },
   ],

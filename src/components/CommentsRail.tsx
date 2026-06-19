@@ -71,11 +71,15 @@ export default function CommentsRail({
   dots,
   openDot,
   resolvedDots = {},
+  showComments,
+  onToggleComments,
   onRowClick,
 }: {
   dots: Dot[]
   openDot: string | null
   resolvedDots?: Record<string, string>
+  showComments: boolean
+  onToggleComments: () => void
   onRowClick: (id: string) => void
 }) {
   const rows = dots.slice().sort((a, b) => a.n - b.n)
@@ -87,14 +91,26 @@ export default function CommentsRail({
       <div style={headerStyle}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.2px' }}>Comments</div>
-          <span style={{ fontSize: 10.5, fontWeight: 700, color: '#4f46e5', background: '#eef0ff', borderRadius: 999, padding: '3px 9px' }}>
-            {resolvedCount} / {total} resolved
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {showComments && (
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: '#4f46e5', background: '#eef0ff', borderRadius: 999, padding: '3px 9px' }}>
+                {resolvedCount} / {total} resolved
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={onToggleComments}
+              style={{ fontFamily: 'inherit', fontSize: 11.5, fontWeight: 600, color: '#52525b', background: '#fff', border: '1px solid #e4e4e9', borderRadius: 8, padding: '5px 10px', cursor: 'pointer' }}
+            >
+              {showComments ? 'Hide' : 'Show'}
+            </button>
+          </div>
         </div>
         <p style={{ fontSize: 12, lineHeight: 1.5, color: '#8e8e98', margin: '6px 0 0' }}>
-          {clean("Atelier's critique, pinned to the page. Click a note to open it on the design.")}
+          {clean(showComments ? "Atelier's critique, pinned to the page. Click a note to open it on the design." : 'Comments hidden. Showing the clean design.')}
         </p>
       </div>
+      {showComments && (
       <div>
         {rows.map((d) => {
           const active = openDot === d.id
@@ -103,6 +119,7 @@ export default function CommentsRail({
           return (
             <div
               key={d.id}
+              className="ate-in"
               onClick={() => onRowClick(d.id)}
               style={{
                 ...rowBase,
@@ -119,7 +136,7 @@ export default function CommentsRail({
                   color: resolved ? '#3f8f5f' : active ? '#fff' : '#4f46e5',
                 }}
               >
-                {resolved ? '✓' : d.n}
+                {resolved ? '✓' : ''}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
@@ -140,6 +157,7 @@ export default function CommentsRail({
           )
         })}
       </div>
+      )}
     </div>
   )
 }
