@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  ::selection{background:rgba(79,70,229,0.18);}
+  .ate-scroll::-webkit-scrollbar{width:10px;height:10px;}
+  .ate-scroll::-webkit-scrollbar-thumb{background:#d6d6dc;border-radius:8px;border:3px solid transparent;background-clip:padding-box;}
+  .ate-scroll::-webkit-scrollbar-track{background:transparent;}
+  @keyframes ate-pop{from{opacity:0;transform:translateY(8px) scale(.97);}to{opacity:1;transform:none;}}
+  @keyframes ate-chip{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:none;}}
+  @keyframes ate-ping{0%{box-shadow:0 0 0 0 rgba(79,70,229,.5),0 2px 6px rgba(0,0,0,.28);}70%{box-shadow:0 0 0 11px rgba(79,70,229,0),0 2px 6px rgba(0,0,0,.28);}100%{box-shadow:0 0 0 0 rgba(79,70,229,0),0 2px 6px rgba(0,0,0,.28);}}
+</style>
+</helmet>
+<div style="height:100vh;display:flex;flex-direction:column;background:#f3f3f6;font-family:'Manrope',-apple-system,sans-serif;color:#18181b;overflow:hidden;">
+
+  <div style="height:53px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:#ffffff;border-bottom:1px solid #ececf0;z-index:30;">
+    <div style="display:flex;align-items:center;gap:11px;">
+      <div style="width:25px;height:25px;border-radius:7px;background:#4f46e5;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(79,70,229,.35);">
+        <div style="width:9px;height:9px;border-radius:50%;border:2.5px solid #fff;"></div>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:9px;">
+        <span style="font-size:15.5px;font-weight:700;letter-spacing:-0.3px;">Design Crit Mode</span>
+        <span style="font-size:11.5px;color:#a1a1aa;font-weight:500;letter-spacing:0.1px;">react, don't describe</span>
+      </div>
+    </div>
+    <sc-if value="{{ isWorkspace }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:12px;color:#71717a;">Critiquing</span>
+        <span style="font-size:12.5px;font-weight:600;color:#3f3f46;background:#f4f4f6;border:1px solid #ececf0;border-radius:999px;padding:5px 12px;">{{ brandLabel }}</span>
+        <button onClick="{{ onStartOver }}" style="font-family:inherit;font-size:12.5px;font-weight:600;color:#52525b;background:#fff;border:1px solid #e4e4e9;border-radius:8px;padding:7px 13px;cursor:pointer;" style-hover="background:#f7f7f9;border-color:#d4d4da;">Switch brand</button>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
+
+    <!-- ============ START SCREEN ============ -->
+    <sc-if value="{{ isStart }}" hint-placeholder-val="{{ true }}">
+      <div class="ate-scroll" style="flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;padding:56px 28px 64px;">
+        <div style="max-width:1080px;width:100%;">
+          <div style="font-size:11.5px;font-weight:700;letter-spacing:1.6px;color:#4f46e5;margin-bottom:16px;">DESIGN CRIT MODE</div>
+          <h1 style="font-size:46px;line-height:1.02;font-weight:800;letter-spacing:-1.8px;margin:0 0 16px;max-width:660px;">React, don't describe.</h1>
+          <p style="font-size:17px;line-height:1.55;color:#52525b;margin:0;max-width:600px;">Three brands, three completely different landing pages. Pick one to critique — you'll shape it by <i>reacting</i> to what you see, never by writing prompts.</p>
+
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:40px;">
+            <sc-for list="{{ brandsList }}" as="d" hint-placeholder-count="3">
+              <button onClick="{{ d.onChoose }}" style="text-align:left;font-family:inherit;cursor:pointer;background:none;border:none;padding:0;display:flex;flex-direction:column;gap:13px;transition:transform .16s ease;" style-hover="transform:translateY(-3px);">
+                <div style="height:190px;border-radius:12px;overflow:hidden;border:1px solid #e2e2e8;box-shadow:0 1px 3px rgba(0,0,0,.05);transition:border-color .16s ease,box-shadow .16s ease;" style-hover="border-color:#c2c2cc;box-shadow:0 16px 36px -16px rgba(20,16,10,.32);">
+
+                <!-- EMBER preview: warm split -->
+                <sc-if value="{{ d.isEmber }}" hint-placeholder-val="{{ false }}">
+                  <div style="height:100%;position:relative;overflow:hidden;background:#f3e9dc;display:flex;">
+                    <div style="flex:1.1;padding:16px 14px;display:flex;flex-direction:column;">
+                      <span style="font-family:'Newsreader',serif;font-weight:600;font-size:14px;color:#2a1c12;">Ember</span>
+                      <div style="margin-top:auto;">
+                        <div style="font-family:'Newsreader',serif;font-weight:500;font-size:21px;line-height:1.05;color:#2a1c12;letter-spacing:-0.4px;">Coffee,<br>delivered.</div>
+                        <div style="display:inline-block;margin-top:10px;font-size:9px;font-weight:700;color:#fbf6ee;background:#a9521f;padding:5px 10px;border-radius:6px;">Subscribe</div>
+                      </div>
+                    </div>
+                    <div style="flex:.9;background:#e7d2b8;background-image:repeating-linear-gradient(135deg,rgba(0,0,0,.05) 0 9px,transparent 9px 18px);"></div>
+                  </div>
+                </sc-if>
+
+                <!-- CADENCE preview: dark gradient + mock -->
+                <sc-if value="{{ d.isCadence }}" hint-placeholder-val="{{ false }}">
+                  <div style="height:100%;position:relative;overflow:hidden;background:radial-gradient(130% 130% at 12% 8%,#7b78ff 0%,#635bff 32%,#3b2f8f 72%,#1e1747 100%);padding:16px 14px;display:flex;flex-direction:column;">
+                    <span style="font-weight:800;font-size:14px;color:#fff;letter-spacing:-0.3px;">Cadence</span>
+                    <div style="margin-top:auto;">
+                      <div style="font-weight:800;font-size:20px;line-height:1.05;color:#fff;letter-spacing:-1px;">Plan less.<br>Do more.</div>
+                    </div>
+                    <div style="position:absolute;right:-26px;bottom:14px;width:118px;height:84px;background:#fff;border-radius:9px;box-shadow:0 12px 30px -8px rgba(0,0,0,.45);padding:8px;display:flex;flex-direction:column;gap:5px;">
+                      <div style="height:6px;width:46px;background:#e7e9f2;border-radius:3px;"></div>
+                      <div style="height:9px;width:80%;background:#635bff;border-radius:3px;opacity:.85;"></div>
+                      <div style="height:9px;width:60%;background:#c7c9f7;border-radius:3px;"></div>
+                      <div style="height:9px;width:72%;background:#e7e9f2;border-radius:3px;"></div>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <!-- MAREN preview: airy centered -->
+                <sc-if value="{{ d.isMaren }}" hint-placeholder-val="{{ false }}">
+                  <div style="height:100%;position:relative;overflow:hidden;background:#f1efe8;display:flex;flex-direction:column;align-items:center;padding:18px 14px 0;">
+                    <span style="font-family:'Newsreader',serif;font-weight:600;font-size:13px;color:#27261f;letter-spacing:1px;">MAREN</span>
+                    <div style="font-family:'Newsreader',serif;font-weight:400;font-size:17px;line-height:1.14;color:#27261f;text-align:center;margin-top:13px;letter-spacing:-0.3px;">Skincare,<br>quietly effective.</div>
+                    <div style="font-size:9px;color:#46503a;border-bottom:1px solid #46503a;padding-bottom:2px;margin-top:8px;font-weight:600;">Build your routine</div>
+                    <div style="margin-top:auto;width:100%;height:34px;background:#e3e6d8;background-image:repeating-linear-gradient(135deg,rgba(0,0,0,.045) 0 9px,transparent 9px 18px);"></div>
+                  </div>
+                </sc-if>
+
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:0 3px;">
+                  <span style="font-size:14.5px;font-weight:700;letter-spacing:-0.2px;color:#27272a;">{{ d.name }}</span>
+                  <span style="font-size:11.5px;color:#a1a1aa;font-weight:500;">{{ d.category }}</span>
+                </div>
+              </button>
+            </sc-for>
+          </div>
+          <div style="margin-top:30px;font-size:12.5px;color:#a1a1aa;">No copy to write, no settings to fill in. Design Crit Mode pins its critique to the page, and you accept the takes you like.</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============ WORKSPACE ============ -->
+    <sc-if value="{{ isWorkspace }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
+        <div style="flex:1;min-height:0;display:flex;">
+
+          <!-- CANVAS -->
+          <div class="ate-scroll" ref="{{ canvasRef }}" style="flex:1;min-width:0;overflow:auto;position:relative;background-color:#f3f3f6;background-image:radial-gradient(#e1e1e8 1.1px,transparent 1.1px);background-size:17px 17px;padding:40px 40px 56px;">
+            <div style="position:sticky;top:0;z-index:20;display:flex;justify-content:center;pointer-events:none;margin-bottom:18px;">
+              <div style="display:flex;align-items:center;gap:9px;background:rgba(24,24,27,.9);color:#fff;font-size:12.5px;font-weight:500;padding:7px 14px;border-radius:999px;box-shadow:0 6px 20px -6px rgba(0,0,0,.4);backdrop-filter:blur(6px);">
+                <span style="width:16px;height:16px;border-radius:50%;background:#4f46e5;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;">!</span>
+                Tap a pin, or a note on the right — each is a taste-different critique you can accept inline.
+              </div>
+            </div>
+
+            <!-- BRAND PAGE FRAME -->
+            <div ref="{{ frameRef }}" style="{{ pageStyle }}">
+              <div style="height:38px;display:flex;align-items:center;gap:7px;padding:0 14px;background:rgba(0,0,0,.04);border-bottom:1px solid var(--line);">
+                <span style="width:11px;height:11px;border-radius:50%;background:rgba(0,0,0,.13);"></span>
+                <span style="width:11px;height:11px;border-radius:50%;background:rgba(0,0,0,.1);"></span>
+                <span style="width:11px;height:11px;border-radius:50%;background:rgba(0,0,0,.08);"></span>
+                <div style="margin:0 auto;font-size:11.5px;font-family:'Manrope',sans-serif;color:var(--sub);background:rgba(0,0,0,.05);border-radius:6px;padding:3px 30px;">{{ b.url }}</div>
+              </div>
+
+              <!-- ===== EMBER LAYOUT ===== -->
+              <sc-if value="{{ isEmber }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 44px;">
+                  <span style="font-family:var(--display);font-weight:600;font-size:24px;letter-spacing:.4px;">{{ b.name }}</span>
+                  <div style="display:flex;align-items:center;gap:26px;font-size:13.5px;font-weight:500;color:var(--sub);">
+                    <sc-for list="{{ b.nav }}" as="link" hint-placeholder-count="3"><span>{{ link }}</span></sc-for>
+                    <span style="font-size:13px;font-weight:700;color:var(--accentInk);background:var(--accent);padding:8px 15px;border-radius:8px;">{{ b.signup }}</span>
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1.06fr .94fr;gap:0;align-items:stretch;border-top:1px solid var(--line);">
+                  <div style="padding:48px 44px 52px;display:flex;flex-direction:column;justify-content:center;">
+                    <div style="font-size:11px;font-weight:700;letter-spacing:1.6px;color:var(--accent);margin-bottom:18px;">{{ b.eyebrow }}</div>
+                    <h1 style="font-family:var(--display);font-weight:var(--dispWeight);font-size:54px;line-height:1.02;letter-spacing:var(--dispLs);margin:0 0 20px;">{{ view.headline }}</h1>
+                    <p style="font-size:16px;line-height:1.6;color:var(--sub);margin:0 0 28px;max-width:380px;">{{ view.subhead }}</p>
+                    <div style="display:flex;align-items:center;gap:20px;">
+                      <span style="font-size:14px;font-weight:700;color:var(--accentInk);background:var(--accent);padding:14px 24px;border-radius:10px;">{{ view.cta }}</span>
+                      <span style="font-size:14px;font-weight:600;color:var(--ink);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line);">{{ b.ctaSecondary }}</span>
+                    </div>
+                  </div>
+                  <div style="position:relative;min-height:440px;background:var(--hero);background-image:repeating-linear-gradient(135deg,rgba(0,0,0,.05) 0 13px,transparent 13px 26px);display:flex;align-items:center;justify-content:center;">
+                    <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:rgba(0,0,0,.4);letter-spacing:.3px;">IMG · 3:4</span>
+                    <span style="position:absolute;left:16px;bottom:16px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#3f3f46;background:rgba(255,255,255,.88);padding:5px 9px;border-radius:6px;">{{ view.heroImg }}</span>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:20px;padding:16px 44px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:rgba(0,0,0,.018);">
+                  <span style="font-size:13px;font-weight:600;color:var(--ink);">{{ view.social }}</span>
+                  <span style="flex:1;"></span>
+                  <sc-for list="{{ b.proof }}" as="p" hint-placeholder-count="3"><span style="font-family:ui-monospace,monospace;font-size:11px;letter-spacing:1px;color:var(--sub);opacity:.7;">{{ p }}</span></sc-for>
+                </div>
+                <div style="padding:50px 44px 12px;">
+                  <div style="font-size:11px;font-weight:700;letter-spacing:1.6px;color:var(--accent);margin-bottom:28px;">{{ b.howLabel }}</div>
+                  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:30px;">
+                    <sc-for list="{{ b.how }}" as="step" hint-placeholder-count="3">
+                      <div style="border-top:2px solid var(--ink);padding-top:16px;">
+                        <div style="font-family:var(--display);font-weight:500;font-size:34px;color:var(--accent);line-height:1;margin-bottom:12px;">{{ step.nn }}</div>
+                        <div style="font-family:var(--display);font-weight:600;font-size:19px;margin-bottom:7px;">{{ step.t }}</div>
+                        <p style="font-size:13px;line-height:1.6;color:var(--sub);margin:0;">{{ step.d }}</p>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="padding:46px 44px 50px;">
+                  <div style="font-size:11px;font-weight:700;letter-spacing:1.6px;color:var(--accent);margin-bottom:22px;">{{ b.featLabel }}</div>
+                  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px;">
+                    <sc-for list="{{ b.feats }}" as="f" hint-placeholder-count="3">
+                      <div>
+                        <div style="height:150px;border-radius:12px;background:var(--hero);background-image:repeating-linear-gradient(135deg,rgba(0,0,0,.05) 0 10px,transparent 10px 20px);display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:10.5px;color:rgba(0,0,0,.4);margin-bottom:14px;">{{ b.featImg }}</div>
+                        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span style="font-family:var(--display);font-weight:600;font-size:18px;">{{ f.name }}</span><span style="font-size:13px;font-weight:700;color:var(--accent);">{{ f.tag }}</span></div>
+                        <p style="font-size:12.5px;color:var(--sub);margin:6px 0 0;line-height:1.45;">{{ f.meta }}</p>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="padding:54px 44px;background:rgba(0,0,0,.025);border-top:1px solid var(--line);">
+                  <p style="font-family:var(--display);font-weight:500;font-style:italic;font-size:28px;line-height:1.34;letter-spacing:-.3px;margin:0 0 18px;max-width:720px;">{{ b.quote }}</p>
+                  <div style="font-size:13px;font-weight:600;color:var(--sub);">{{ b.quoteBy }}</div>
+                </div>
+                <div style="padding:32px 44px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;">
+                  <div style="max-width:250px;"><div style="font-family:var(--display);font-weight:600;font-size:20px;margin-bottom:8px;">{{ b.name }}</div><p style="font-size:12px;color:var(--sub);line-height:1.5;margin:0;">{{ b.footBlurb }}</p></div>
+                  <div style="display:flex;gap:48px;"><sc-for list="{{ b.footCols }}" as="col" hint-placeholder-count="2"><div style="display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:var(--sub);"><span style="font-weight:700;color:var(--ink);font-size:11px;letter-spacing:.6px;">{{ col.h }}</span><sc-for list="{{ col.links }}" as="l" hint-placeholder-count="3"><span>{{ l }}</span></sc-for></div></sc-for></div>
+                </div>
+              </sc-if>
+
+              <!-- ===== CADENCE LAYOUT (Stripe-like) ===== -->
+              <sc-if value="{{ isCadence }}" hint-placeholder-val="{{ false }}">
+                <div style="background:radial-gradient(135% 130% at 8% 4%,#7b78ff 0%,#635bff 30%,#3b2f8f 70%,#1b1540 100%);padding:0 0 60px;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 44px;">
+                    <span style="font-weight:800;font-size:21px;letter-spacing:-0.4px;color:#fff;">{{ b.name }}</span>
+                    <div style="display:flex;align-items:center;gap:24px;font-size:13.5px;font-weight:500;color:rgba(255,255,255,.82);">
+                      <sc-for list="{{ b.nav }}" as="link" hint-placeholder-count="3"><span>{{ link }}</span></sc-for>
+                      <span style="color:#fff;">Sign in</span>
+                      <span style="font-size:13px;font-weight:700;color:#3b2f8f;background:#fff;padding:8px 15px;border-radius:8px;">{{ b.signup }}</span>
+                    </div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1.02fr .98fr;gap:30px;align-items:center;padding:46px 44px 14px;">
+                    <div>
+                      <div style="font-size:11px;font-weight:700;letter-spacing:1.6px;color:rgba(255,255,255,.7);margin-bottom:18px;">{{ b.eyebrow }}</div>
+                      <h1 style="font-family:var(--display);font-weight:800;font-size:52px;line-height:1.02;letter-spacing:-1.6px;margin:0 0 18px;color:#fff;">{{ view.headline }}</h1>
+                      <p style="font-size:16px;line-height:1.6;color:rgba(255,255,255,.84);margin:0 0 26px;max-width:400px;">{{ view.subhead }}</p>
+                      <div style="display:flex;align-items:center;gap:14px;">
+                        <span style="font-size:14px;font-weight:700;color:#3b2f8f;background:#fff;padding:13px 22px;border-radius:10px;">{{ view.cta }}</span>
+                        <span style="font-size:14px;font-weight:600;color:#fff;display:flex;align-items:center;gap:7px;">{{ b.ctaSecondary }} <span style="opacity:.7;">→</span></span>
+                      </div>
+                    </div>
+                    <div style="position:relative;background:#fff;border-radius:14px;box-shadow:0 30px 70px -20px rgba(10,8,40,.6);overflow:hidden;">
+                      <div style="display:flex;align-items:center;gap:6px;padding:11px 13px;border-bottom:1px solid #eef0f6;">
+                        <span style="width:9px;height:9px;border-radius:50%;background:#e2e4ee;"></span><span style="width:9px;height:9px;border-radius:50%;background:#e2e4ee;"></span>
+                        <span style="font-size:11px;font-weight:700;color:#0a2540;margin-left:6px;">This week</span>
+                        <span style="margin-left:auto;font-size:10px;color:#8a93a8;">{{ view.heroImg }}</span>
+                      </div>
+                      <div style="display:flex;">
+                        <div style="width:64px;border-right:1px solid #eef0f6;padding:13px 10px;display:flex;flex-direction:column;gap:9px;">
+                          <div style="height:8px;width:34px;border-radius:3px;background:#635bff;"></div>
+                          <div style="height:7px;width:40px;border-radius:3px;background:#e7e9f2;"></div>
+                          <div style="height:7px;width:30px;border-radius:3px;background:#e7e9f2;"></div>
+                          <div style="height:7px;width:38px;border-radius:3px;background:#e7e9f2;"></div>
+                        </div>
+                        <div style="flex:1;padding:13px 14px;display:flex;flex-direction:column;gap:10px;">
+                          <div style="display:flex;align-items:center;gap:9px;"><span style="font-size:9px;color:#9aa2b6;width:30px;">9:00</span><div style="flex:1;height:22px;border-radius:6px;background:#635bff;display:flex;align-items:center;padding:0 9px;"><span style="font-size:9.5px;color:#fff;font-weight:600;">Deep work · Auth flow</span></div></div>
+                          <div style="display:flex;align-items:center;gap:9px;"><span style="font-size:9px;color:#9aa2b6;width:30px;">11:30</span><div style="flex:.7;height:22px;border-radius:6px;background:#d9dcfb;display:flex;align-items:center;padding:0 9px;"><span style="font-size:9.5px;color:#3b2f8f;font-weight:600;">Standup</span></div></div>
+                          <div style="display:flex;align-items:center;gap:9px;"><span style="font-size:9px;color:#9aa2b6;width:30px;">14:00</span><div style="flex:.9;height:22px;border-radius:6px;background:#eef0f6;display:flex;align-items:center;padding:0 9px;"><span style="font-size:9.5px;color:#56607a;font-weight:600;">Review PRs</span></div></div>
+                          <div style="display:flex;align-items:center;gap:9px;"><span style="font-size:9px;color:#9aa2b6;width:30px;">16:00</span><div style="flex:.5;height:22px;border-radius:6px;background:#c7f7ec;display:flex;align-items:center;padding:0 9px;"><span style="font-size:9.5px;color:#0d6b57;font-weight:600;">Walk</span></div></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:center;gap:38px;padding:22px 44px;background:var(--bg);border-bottom:1px solid var(--line);">
+                  <span style="font-size:12px;font-weight:600;color:var(--sub);">{{ view.social }}</span>
+                  <sc-for list="{{ b.proof }}" as="p" hint-placeholder-count="3"><span style="font-family:ui-monospace,monospace;font-size:12px;letter-spacing:1px;color:var(--sub);opacity:.55;">{{ p }}</span></sc-for>
+                </div>
+                <div style="padding:54px 44px 40px;background:var(--bg);">
+                  <div style="font-size:11px;font-weight:700;letter-spacing:1.6px;color:var(--accent);margin-bottom:8px;">{{ b.howLabel }}</div>
+                  <div style="font-family:var(--display);font-weight:800;font-size:30px;letter-spacing:-1px;color:var(--ink);margin-bottom:30px;max-width:520px;line-height:1.1;">Everything you need to run a calmer week.</div>
+                  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
+                    <sc-for list="{{ b.feats }}" as="f" hint-placeholder-count="3">
+                      <div style="border:1px solid var(--line);border-radius:14px;padding:22px 20px;background:var(--surface);">
+                        <div style="width:34px;height:34px;border-radius:9px;background:var(--accent);opacity:.95;margin-bottom:16px;display:flex;align-items:center;justify-content:center;"><span style="width:13px;height:13px;border:2.4px solid #fff;border-radius:4px;"></span></div>
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;"><span style="font-weight:700;font-size:16px;color:var(--ink);">{{ f.name }}</span><span style="font-size:9.5px;font-weight:700;color:var(--accent);background:rgba(99,91,255,.1);padding:2px 7px;border-radius:999px;">{{ f.tag }}</span></div>
+                        <p style="font-size:13px;color:var(--sub);margin:0;line-height:1.55;">{{ f.meta }}</p>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="padding:14px 44px 56px;background:var(--bg);">
+                  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;border-top:1px solid var(--line);padding-top:36px;">
+                    <sc-for list="{{ b.stats }}" as="s" hint-placeholder-count="3">
+                      <div><div style="font-family:var(--display);font-weight:800;font-size:40px;letter-spacing:-1.5px;color:var(--accent);">{{ s.v }}</div><div style="font-size:13px;color:var(--sub);margin-top:4px;">{{ s.k }}</div></div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="padding:44px 44px;background:var(--ink);display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;">
+                  <div style="max-width:260px;"><div style="font-weight:800;font-size:19px;margin-bottom:8px;color:#fff;">{{ b.name }}</div><p style="font-size:12px;color:rgba(255,255,255,.55);line-height:1.5;margin:0;">{{ b.footBlurb }}</p></div>
+                  <div style="display:flex;gap:48px;"><sc-for list="{{ b.footCols }}" as="col" hint-placeholder-count="2"><div style="display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:rgba(255,255,255,.6);"><span style="font-weight:700;color:#fff;font-size:11px;letter-spacing:.6px;">{{ col.h }}</span><sc-for list="{{ col.links }}" as="l" hint-placeholder-count="3"><span>{{ l }}</span></sc-for></div></sc-for></div>
+                </div>
+              </sc-if>
+
+              <!-- ===== MAREN LAYOUT (Versed-like editorial) ===== -->
+              <sc-if value="{{ isMaren }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:24px 48px;">
+                  <div style="flex:1;display:flex;gap:24px;font-size:12.5px;font-weight:500;color:var(--sub);"><sc-for list="{{ b.nav }}" as="link" hint-placeholder-count="3"><span>{{ link }}</span></sc-for></div>
+                  <span style="font-family:var(--display);font-weight:600;font-size:23px;letter-spacing:3px;color:var(--ink);">{{ b.nameCaps }}</span>
+                  <div style="flex:1;display:flex;justify-content:flex-end;"><span style="font-size:12.5px;font-weight:700;color:var(--ink);border:1px solid var(--ink);padding:8px 18px;border-radius:999px;">{{ b.signup }}</span></div>
+                </div>
+                <div style="padding:54px 48px 44px;display:flex;flex-direction:column;align-items:center;text-align:center;">
+                  <div style="font-size:10.5px;font-weight:700;letter-spacing:2px;color:var(--accent);margin-bottom:22px;">{{ b.eyebrow }}</div>
+                  <h1 style="font-family:var(--display);font-weight:var(--dispWeight);font-size:58px;line-height:1.04;letter-spacing:var(--dispLs);margin:0 0 22px;max-width:680px;">{{ view.headline }}</h1>
+                  <p style="font-size:16.5px;line-height:1.62;color:var(--sub);margin:0 0 30px;max-width:480px;">{{ view.subhead }}</p>
+                  <span style="font-size:13.5px;font-weight:700;color:var(--accentInk);background:var(--accent);padding:14px 30px;border-radius:999px;">{{ view.cta }}</span>
+                </div>
+                <div style="position:relative;height:330px;margin:0 48px 8px;border-radius:16px;overflow:hidden;background:var(--hero);background-image:repeating-linear-gradient(135deg,rgba(0,0,0,.04) 0 14px,transparent 14px 28px);display:flex;align-items:center;justify-content:center;">
+                  <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:rgba(0,0,0,.35);letter-spacing:.3px;">IMG · 16:9</span>
+                  <span style="position:absolute;left:18px;bottom:18px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#3f3f46;background:rgba(255,255,255,.85);padding:5px 9px;border-radius:6px;">{{ view.heroImg }}</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:center;gap:34px;padding:26px 48px;">
+                  <span style="font-size:12.5px;font-weight:600;color:var(--ink);font-style:italic;font-family:var(--display);">{{ view.social }}</span>
+                  <sc-for list="{{ b.proof }}" as="p" hint-placeholder-count="3"><span style="font-family:ui-monospace,monospace;font-size:11px;letter-spacing:1.5px;color:var(--sub);opacity:.6;">{{ p }}</span></sc-for>
+                </div>
+                <div style="padding:40px 48px 46px;border-top:1px solid var(--line);">
+                  <div style="text-align:center;font-size:10.5px;font-weight:700;letter-spacing:2px;color:var(--accent);margin-bottom:34px;">{{ b.howLabel }}</div>
+                  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:36px;">
+                    <sc-for list="{{ b.how }}" as="step" hint-placeholder-count="3">
+                      <div style="text-align:center;">
+                        <div style="font-family:var(--display);font-weight:400;font-size:24px;color:var(--accent);margin-bottom:12px;">{{ step.nn }}</div>
+                        <div style="font-family:var(--display);font-weight:600;font-size:20px;margin-bottom:9px;">{{ step.t }}</div>
+                        <p style="font-size:13px;line-height:1.6;color:var(--sub);margin:0 auto;max-width:230px;">{{ step.d }}</p>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="padding:44px 48px 52px;border-top:1px solid var(--line);">
+                  <div style="text-align:center;font-size:10.5px;font-weight:700;letter-spacing:2px;color:var(--accent);margin-bottom:30px;">{{ b.featLabel }}</div>
+                  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:26px;">
+                    <sc-for list="{{ b.feats }}" as="f" hint-placeholder-count="3">
+                      <div style="text-align:center;">
+                        <div style="height:200px;border-radius:14px;background:var(--hero);background-image:repeating-linear-gradient(135deg,rgba(0,0,0,.04) 0 11px,transparent 11px 22px);display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:10.5px;color:rgba(0,0,0,.35);margin-bottom:16px;">{{ b.featImg }}</div>
+                        <div style="font-family:var(--display);font-weight:600;font-size:19px;margin-bottom:5px;">{{ f.name }}</div>
+                        <p style="font-size:12.5px;color:var(--sub);margin:0 0 7px;line-height:1.45;">{{ f.meta }}</p>
+                        <span style="font-size:13px;font-weight:700;color:var(--accent);">{{ f.tag }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="padding:56px 48px;background:rgba(0,0,0,.022);border-top:1px solid var(--line);text-align:center;">
+                  <p style="font-family:var(--display);font-weight:400;font-style:italic;font-size:27px;line-height:1.4;letter-spacing:-.2px;margin:0 auto 18px;max-width:640px;">{{ b.quote }}</p>
+                  <div style="font-size:13px;font-weight:600;color:var(--sub);">{{ b.quoteBy }}</div>
+                </div>
+                <div style="padding:34px 48px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap;">
+                  <div style="font-family:var(--display);font-weight:600;font-size:20px;letter-spacing:2px;">{{ b.nameCaps }}</div>
+                  <div style="display:flex;gap:30px;font-size:12px;color:var(--sub);"><sc-for list="{{ b.footFlat }}" as="l" hint-placeholder-count="5"><span>{{ l }}</span></sc-for></div>
+                </div>
+              </sc-if>
+
+              <!-- DOTS -->
+              <sc-for list="{{ dots }}" as="dot" hint-placeholder-count="0">
+                <button onClick="{{ dot.onClick }}" style="{{ dot.style }}">{{ dot.n }}</button>
+              </sc-for>
+
+              <!-- POPOVER -->
+              <sc-if value="{{ hasOpen }}" hint-placeholder-val="{{ false }}">
+                <div style="{{ openDot.style }}">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;">
+                    <span style="font-family:'Manrope',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:1px;color:#4f46e5;display:flex;align-items:center;gap:7px;"><span style="width:17px;height:17px;border-radius:50%;background:#4f46e5;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:10px;">{{ openDot.n }}</span>{{ openDot.region }}</span>
+                    <button onClick="{{ openDot.onClose }}" style="font-family:'Manrope',sans-serif;width:24px;height:24px;border-radius:6px;border:none;background:#f4f4f6;color:#71717a;font-size:15px;line-height:1;cursor:pointer;" style-hover="background:#ececef;">×</button>
+                  </div>
+                  <p style="font-family:'Manrope',sans-serif;font-size:14.5px;line-height:1.5;color:#27272a;margin:0 0 4px;font-weight:500;">{{ openDot.critique }}</p>
+                  <div style="font-family:'Manrope',sans-serif;font-size:11.5px;color:#a1a1aa;margin:12px 0 9px;font-weight:600;">{{ openDot.prompt }}</div>
+                  <sc-if value="{{ openDot.previewing }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:center;gap:7px;background:#eef0ff;border:1px solid #e0e2ff;border-radius:8px;padding:7px 10px;margin-bottom:9px;font-family:'Manrope',sans-serif;font-size:11px;color:#4338ca;font-weight:600;"><span style="width:6px;height:6px;border-radius:50%;background:#4f46e5;flex:0 0 auto;"></span>Trying it on live — Accept to keep, or close to revert.</div>
+                  </sc-if>
+
+                  <sc-if value="{{ openDot.isText }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                      <sc-for list="{{ openDot.options }}" as="opt" hint-placeholder-count="3">
+                        <div onClick="{{ opt.onCardClick }}" style="{{ opt.cardStyle }}">
+                          <div style="flex:1;min-width:0;">
+                            <div style="font-family:'Manrope',sans-serif;font-size:13.5px;font-weight:600;line-height:1.35;color:#18181b;">{{ opt.value }}</div>
+                            <div style="font-family:'Manrope',sans-serif;font-size:11px;color:#a1a1aa;margin-top:3px;">{{ opt.vibe }}</div>
+                          </div>
+                          <sc-if value="{{ opt.isCurrent }}" hint-placeholder-val="{{ false }}"><span style="font-family:'Manrope',sans-serif;font-size:10.5px;font-weight:700;color:#a1a1aa;flex:0 0 auto;">Current</span></sc-if><sc-if value="{{ opt.previewing }}" hint-placeholder-val="{{ false }}"><span style="font-family:'Manrope',sans-serif;font-size:9.5px;font-weight:800;letter-spacing:.4px;color:#4338ca;flex:0 0 auto;">PREVIEWING</span></sc-if>
+                          <sc-if value="{{ opt.showActions }}" hint-placeholder-val="{{ true }}"><button onClick="{{ opt.onAccept }}" style="font-family:'Manrope',sans-serif;font-size:11.5px;font-weight:700;color:#fff;background:#4f46e5;border:none;border-radius:7px;padding:8px 15px;cursor:pointer;flex:0 0 auto;" style-hover="background:#4338ca;">Accept</button></sc-if>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ openDot.isPalette }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                      <sc-for list="{{ openDot.options }}" as="opt" hint-placeholder-count="3">
+                        <div onClick="{{ opt.onCardClick }}" style="{{ opt.cardStyle }}">
+                          <div style="display:flex;gap:5px;flex:0 0 auto;">
+                            <sc-for list="{{ opt.swatch }}" as="sw" hint-placeholder-count="3"><span style="width:22px;height:22px;border-radius:6px;border:1px solid rgba(0,0,0,.08);background:{{ sw }};"></span></sc-for>
+                          </div>
+                          <div style="flex:1;min-width:0;font-family:'Manrope',sans-serif;font-size:13px;font-weight:600;color:#18181b;">{{ opt.vibe }}</div>
+                          <sc-if value="{{ opt.isCurrent }}" hint-placeholder-val="{{ false }}"><span style="font-family:'Manrope',sans-serif;font-size:10.5px;font-weight:700;color:#a1a1aa;flex:0 0 auto;">Current</span></sc-if><sc-if value="{{ opt.previewing }}" hint-placeholder-val="{{ false }}"><span style="font-family:'Manrope',sans-serif;font-size:9.5px;font-weight:800;letter-spacing:.4px;color:#4338ca;flex:0 0 auto;">PREVIEWING</span></sc-if>
+                          <sc-if value="{{ opt.showActions }}" hint-placeholder-val="{{ true }}"><button onClick="{{ opt.onAccept }}" style="font-family:'Manrope',sans-serif;font-size:11.5px;font-weight:700;color:#fff;background:#4f46e5;border:none;border-radius:7px;padding:8px 15px;cursor:pointer;flex:0 0 auto;" style-hover="background:#4338ca;">Accept</button></sc-if>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+
+                  <div style="font-family:'Manrope',sans-serif;font-size:11px;color:#c4c4cc;margin-top:11px;">Tap an option to try it on live. Accept to keep it.</div>
+                </div>
+              </sc-if>
+
+            </div>
+          </div>
+
+          <!-- COMMENTS RAIL -->
+          <div class="ate-scroll" style="width:320px;flex:0 0 320px;border-left:1px solid #ececf0;background:#fff;display:flex;flex-direction:column;overflow:auto;">
+            <div style="padding:18px 18px 14px;border-bottom:1px solid #f1f1f4;position:sticky;top:0;background:#fff;z-index:2;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="font-size:15px;font-weight:700;letter-spacing:-0.2px;">Comments</div>
+                <span style="font-size:10.5px;font-weight:700;color:#4f46e5;background:#eef0ff;border-radius:999px;padding:3px 9px;">{{ resolvedLabel }}</span>
+              </div>
+              <p style="font-size:12px;line-height:1.5;color:#8e8e98;margin:6px 0 0;">Atelier's critique, pinned to the page. Click a note to open it on the design.</p>
+            </div>
+            <div>
+              <sc-for list="{{ comments }}" as="c" hint-placeholder-count="6">
+                <div onClick="{{ c.onClick }}" style="{{ c.rowStyle }}" style-hover="background:#faf9ff;">
+                  <div style="{{ c.badgeStyle }}">{{ c.badgeText }}</div>
+                  <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;">
+                      <span style="font-size:12.5px;font-weight:700;color:#27272a;white-space:nowrap;">{{ c.region }}</span>
+                      <span style="{{ c.statusStyle }}">{{ c.statusText }}</span>
+                    </div>
+                    <div style="font-size:12px;line-height:1.45;color:#71717a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-height:35px;">{{ c.critique }}</div>
+                    <sc-if value="{{ c.resolved }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:11.5px;margin-top:6px;display:flex;gap:5px;align-items:baseline;"><span style="color:#3f8f5f;font-weight:700;">→</span><span style="color:#52525b;font-weight:500;line-height:1.4;">{{ c.chosen }}</span></div>
+                    </sc-if>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <!-- LINEAGE STRIP -->
+        <sc-if value="{{ showLineage }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:0 0 auto;height:112px;border-top:1px solid #ececf0;background:#fff;display:flex;align-items:center;padding:0 18px;">
+            <div style="flex:0 0 auto;padding-right:20px;border-right:1px solid #f1f1f4;margin-right:18px;">
+              <div style="font-size:10.5px;font-weight:700;letter-spacing:1px;color:#52525b;">VERSION LINEAGE</div>
+              <div style="font-size:11px;color:#b4b4bc;margin-top:3px;">read-only · how it evolved</div>
+            </div>
+            <div class="ate-scroll" style="flex:1;min-width:0;display:flex;align-items:center;gap:0;overflow-x:auto;padding:8px 0;">
+              <sc-for list="{{ versions }}" as="v" hint-placeholder-count="1">
+                <div style="display:flex;align-items:center;flex:0 0 auto;">
+                  <sc-if value="{{ v.showArrow }}" hint-placeholder-val="{{ false }}"><span style="color:#d4d4da;font-size:16px;margin:0 10px;">→</span></sc-if>
+                  <div style="{{ v.cardStyle }}">
+                    <div style="height:34px;background:{{ v.bg }};display:flex;align-items:center;padding:0 9px;">
+                      <span style="font-family:'Newsreader',serif;font-size:10px;font-weight:500;color:{{ v.ink }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ v.headline }}</span>
+                    </div>
+                    <div style="height:5px;background:{{ v.accent }};"></div>
+                    <div style="padding:5px 9px;display:flex;align-items:center;justify-content:space-between;">
+                      <span style="font-size:11px;font-weight:700;color:#3f3f46;">{{ v.n }}</span>
+                      <span style="font-size:9.5px;color:#a1a1aa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px;">{{ v.note }}</span>
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320,&quot;height&quot;:860},&quot;showLineage&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  palettes = {
+    warmEarthy: { bg:'#f3e9dc', surface:'#fbf6ee', ink:'#2a1c12', sub:'#6f5743', accent:'#a9521f', accentInk:'#fbf6ee', line:'#e6d7c4', hero:'#e7d2b8', display:'"Newsreader", Georgia, serif', dispWeight:500, dispLs:'-0.6px' },
+    bold:       { bg:'#ffffff', surface:'#ffffff', ink:'#0d0d0f', sub:'#56565e', accent:'#ea5a16', accentInk:'#ffffff', line:'#ececef', hero:'#1b1b1f', display:'"Manrope", sans-serif', dispWeight:800, dispLs:'-1.6px' },
+    cream:      { bg:'#faf7f1', surface:'#ffffff', ink:'#1f1b16', sub:'#7c756a', accent:'#3f3a33', accentInk:'#faf7f1', line:'#ece7dd', hero:'#efeae1', display:'"Newsreader", Georgia, serif', dispWeight:400, dispLs:'-0.3px' },
+    cadence:    { bg:'#ffffff', surface:'#f7f8fc', ink:'#0a2540', sub:'#516079', accent:'#635bff', accentInk:'#ffffff', line:'#e7e9f2', hero:'#0a2540', display:'"Manrope", sans-serif', dispWeight:800, dispLs:'-1.6px' },
+    maren:      { bg:'#f1efe8', surface:'#fbfaf5', ink:'#27261f', sub:'#6f6d62', accent:'#46503a', accentInk:'#fbfaf5', line:'#e4e0d5', hero:'#e3e6d8', display:'"Newsreader", Georgia, serif', dispWeight:400, dispLs:'-0.4px' },
+  };
+
+  paletteOptions = [
+    { id:'warmEarthy', value:'warmEarthy', vibe:'Warm earthy',        tag:'Warm, earthy palette',      swatch:['#a9521f','#e7d2b8','#2a1c12'] },
+    { id:'bold',       value:'bold',       vibe:'Bold high-contrast', tag:'Bold high-contrast',        swatch:['#ea5a16','#1b1b1f','#ffffff'] },
+    { id:'cream',      value:'cream',      vibe:'Minimal cream',      tag:'Minimal, restrained color', swatch:['#3f3a33','#efeae1','#1f1b16'] },
+  ];
+
+  mkPaletteDot(top,left,popTop,popLeft,critique){
+    return { id:'palette', n:2, kind:'palette', top, left, popTop, popLeft, region:'Color & mood', field:'palette', critique, prompt:'Recolor the whole page:', options:this.paletteOptions };
+  }
+
+  brands = {
+    ember: {
+      key:'ember', name:'Ember', category:'Coffee subscription', url:'ember.coffee', signup:'Sign up', palKey:'warmEarthy',
+      desc:'Warm split-hero magazine — earthy tones, big serif, full-bleed imagery.',
+      nav:['Beans','How it works','Story'], eyebrow:'SINGLE-ORIGIN SUBSCRIPTION', ctaSecondary:"See this month's beans",
+      defaults:{ headline:'Coffee, delivered.', subhead:'Single-origin coffee from independent farms, delivered to your door on your schedule.', cta:'Start your subscription', heroImg:'Flat-lay of fresh beans', social:'Trusted by 12,000 home baristas' },
+      proof:['STANDART','SPRUDGE','KINFOLK'], howLabel:'THE RITUAL',
+      how:[{t:'Pick your roast',d:'Light, medium, or dark. Change it any time without missing a delivery.'},{t:'We roast to order',d:'Beans roast the morning they ship. Nothing in your bag is older than 48 hours.'},{t:'Brew & repeat',d:'Arrives on your schedule. Pause, skip, or speed it up whenever you like.'}],
+      featLabel:"THIS MONTH'S SELECTION", featImg:'bean shot',
+      feats:[{name:'Ethiopia Guji',meta:'Jasmine · peach · honey · Light',tag:'$19'},{name:'Colombia Huila',meta:'Cocoa · red apple · caramel · Medium',tag:'$18'},{name:'Sumatra Lintong',meta:'Cedar · dark chocolate · spice · Dark',tag:'$20'}],
+      quote:'"I cancelled three subscriptions for this one. The first cup actually tasted like the notes on the bag."', quoteBy:'Mara K. · subscriber since 2023',
+      footBlurb:'Roasted to order in small batches. Shipped fresh, brewed by you.',
+      footCols:[{h:'SHOP',links:['Subscriptions','Single bags','Gift cards']},{h:'COMPANY',links:['Our farms','Roasting','Journal']}],
+      dots:[
+        { id:'headline', n:1, kind:'text', top:248, left:444, popTop:150, popLeft:470, region:'Hero headline', field:'headline',
+          critique:'"Coffee, delivered." sells the logistics, not the ritual. Lead with mood instead?', prompt:'Pick a headline direction:',
+          options:[{id:'ritual',value:'Your best morning, on repeat.',vibe:'Warm · ritual',tag:'Warm, ritual-led headlines'},{id:'blunt',value:'Single-origin. Stupidly fresh.',vibe:'Playful · blunt',tag:'Playful, blunt copy'},{id:'premium',value:"The last coffee decision you'll make.",vibe:'Confident · premium',tag:'Confident, premium tone'}] },
+        { id:'subhead', n:5, kind:'text', top:376, left:430, popTop:330, popLeft:470, region:'Subhead voice', field:'subhead',
+          critique:'The subhead just explains the product. It could set a tone instead.', prompt:'Rewrite the subhead voice:',
+          options:[{id:'sensory',value:'Roasted to order, shipped within a day, and tuned to how you actually brew.',vibe:'Sensory · specific',tag:'Sensory, specific copy'},{id:'warm',value:'A standing invitation to slow down for ten good minutes every morning.',vibe:'Warm · unhurried',tag:'Warm, unhurried voice'},{id:'plain',value:'Great single-origin coffee, on a schedule that suits you. No app required.',vibe:'Plain · honest',tag:'Plain-spoken honesty'}] },
+        { id:'cta', n:3, kind:'text', top:453, left:150, popTop:430, popLeft:250, region:'Primary CTA', field:'cta',
+          critique:'"Start your subscription" is a commitment ask up front. Lower the stakes?', prompt:'Try a different invitation:',
+          options:[{id:'taste',value:"Taste this month's roast",vibe:'Low-stakes · sensory',tag:'Low-commitment CTAs'},{id:'ritual',value:'Build my morning ritual',vibe:'Aspirational',tag:'Aspirational CTAs'},{id:'direct',value:'Start with one bag',vibe:'Concrete · direct',tag:'Concrete, direct CTAs'}] },
+        { id:'image', n:4, kind:'text', top:300, left:840, popTop:200, popLeft:120, region:'Hero image', field:'heroImg',
+          critique:'A flat-lay of beans is the expected shot. What story should the image tell?', prompt:'Swap the hero image direction:',
+          options:[{id:'pour',value:'Pour-over in morning light',vibe:'Ritual moment',tag:'Lifestyle, in-use imagery'},{id:'farm',value:'Hands at the origin farm',vibe:'Provenance',tag:'Provenance, origin imagery'},{id:'macro',value:'Macro of a single roasted bean',vibe:'Craft · macro',tag:'Product macro imagery'}] },
+        'PALETTE',
+        { id:'social', n:6, kind:'text', top:580, left:140, popTop:560, popLeft:300, region:'Social proof', field:'social',
+          critique:'"12,000 home baristas" is a vanity number. Proof can be quieter and truer.', prompt:'Choose what to prove:',
+          options:[{id:'press',value:'Featured in Standart, Sprudge & Monocle',vibe:'Editorial',tag:'Editorial credibility'},{id:'rating',value:'4.9 average across 2,300 reviews',vibe:'Earned · specific',tag:'Specific, earned proof'},{id:'origin',value:'Sourced from 9 farms we visit each harvest',vibe:'Provenance',tag:'Provenance as proof'}] },
+      ],
+      paletteDot:[470,520,330,120,'The mood reads safe and roastery-default. What feeling should the page lead with?'],
+    },
+
+    cadence: {
+      key:'cadence', name:'Cadence', category:'Productivity app', url:'cadence.app', signup:'Start free', palKey:'cadence',
+      desc:'Stripe-like tech page — gradient hero, a floating product UI, structured grid.',
+      nav:['Product','Solutions','Pricing'], eyebrow:'FOCUS, PLANNED FOR YOU', ctaSecondary:'Watch the tour',
+      defaults:{ headline:'Plan less. Do more.', subhead:"Cadence turns scattered tasks into one calm timeline you'll actually follow — no setup, no clutter.", cta:'Start free', heroImg:'timeline', social:'Powering focused teams at' },
+      proof:['VERSAL','NIMBUS','OUTSET','LATTICE'], howLabel:'FEATURES',
+      how:[], featLabel:'FEATURES', featImg:'screen',
+      feats:[{name:'Auto timeboxing',meta:'Every task gets a slot that fits your real calendar — no dragging required.',tag:'Core'},{name:'Focus mode',meta:'Hides everything but the one thing you are meant to be doing right now.',tag:'Core'},{name:'Weekly review',meta:'A two-minute recap that quietly tunes next week around how you actually work.',tag:'Pro'}],
+      stats:[{v:'6 hrs',k:'reclaimed every week, on average'},{v:'40,000',k:'teams plan their week in Cadence'},{v:'4.8★',k:'across 2,300 reviews'}],
+      quote:'"I stopped dreading Mondays. The week just… runs now."', quoteBy:'Dev S. · engineering lead',
+      footBlurb:'The calm operating system for your week. Made for people with too much to do.',
+      footCols:[{h:'PRODUCT',links:['Features','Pricing','Integrations','Changelog']},{h:'COMPANY',links:['About','Careers','Blog']}],
+      dots:[
+        { id:'headline', n:1, kind:'text', top:215, left:448, popTop:150, popLeft:480, region:'Hero headline', field:'headline',
+          critique:'"Plan less. Do more." is a productivity cliché. Say what is actually different?', prompt:'Pick a headline direction:',
+          options:[{id:'outcome',value:'Your week, already planned.',vibe:'Outcome · calm',tag:'Outcome-led headlines'},{id:'contra',value:'Stop managing tasks. Start finishing them.',vibe:'Contrarian',tag:'Contrarian, punchy copy'},{id:'cat',value:'The to-do list that plans itself.',vibe:'Concrete · category',tag:'Category-defining lines'}] },
+        { id:'subhead', n:5, kind:'text', top:342, left:440, popTop:300, popLeft:480, region:'Subhead voice', field:'subhead',
+          critique:'The subhead lists features. Could it promise a feeling?', prompt:'Rewrite the subhead voice:',
+          options:[{id:'vivid',value:'Open Cadence and your whole week is already laid out, hour by hour.',vibe:'Concrete · vivid',tag:'Concrete, vivid copy'},{id:'benefit',value:'Less time deciding what to do, more time actually doing it.',vibe:'Benefit-led',tag:'Benefit-led voice'},{id:'mech',value:'It reads your calendar, ranks your work, and tells you what is next.',vibe:'Mechanism · plain',tag:'Plain mechanism copy'}] },
+        { id:'cta', n:3, kind:'text', top:390, left:108, popTop:400, popLeft:230, region:'Primary CTA', field:'cta',
+          critique:'"Start free" is on every SaaS site. Make the first step feel lighter?', prompt:'Try a different invitation:',
+          options:[{id:'plan',value:'Plan my week',vibe:'Action · concrete',tag:'Action-oriented CTAs'},{id:'see',value:'See my day in Cadence',vibe:'Show-me',tag:'Show-me CTAs'},{id:'today',value:"Try it on today's tasks",vibe:'Low-stakes',tag:'Low-stakes CTAs'}] },
+        { id:'image', n:4, kind:'text', top:300, left:780, popTop:210, popLeft:120, region:'Hero product UI', field:'heroImg',
+          critique:'The mock shows a generic timeline. What view would prove the value fastest?', prompt:'Swap the hero UI focus:',
+          options:[{id:'timeline',value:'timeline',vibe:'Day timeline',tag:'Timeline-first UI'},{id:'focus',value:'focus mode',vibe:'One task, in focus',tag:'Focus-mode UI'},{id:'review',value:'weekly review',vibe:'Weekly recap',tag:'Review-first UI'}] },
+        'PALETTE',
+        { id:'social', n:6, kind:'text', top:543, left:300, popTop:560, popLeft:430, region:'Social proof', field:'social',
+          critique:'A logo wall says nothing specific. Prove the outcome instead?', prompt:'Choose what to prove:',
+          options:[{id:'press',value:'As featured in The Verge & Sifted',vibe:'Editorial',tag:'Editorial credibility'},{id:'hours',value:'Members reclaim 6 hours a week',vibe:'Outcome · specific',tag:'Specific outcome proof'},{id:'team',value:'Built by the team behind tools you use daily',vibe:'Credibility',tag:'Maker credibility'}] },
+      ],
+      paletteDot:[150,300,250,120,'It reads like every other dev tool — deep indigo and techy. Lead with a different feeling?'],
+    },
+
+    maren: {
+      key:'maren', name:'Maren', nameCaps:'MAREN', category:'Botanical skincare', url:'maren.co', signup:'Shop', palKey:'maren',
+      desc:'Versed-like editorial — airy cream, centered serif, a big full-bleed image.',
+      nav:['Shop','Ingredients','Journal'], eyebrow:'CLINICAL BOTANICAL SKINCARE', ctaSecondary:'Take the skin quiz',
+      defaults:{ headline:'Skincare, quietly effective.', subhead:"Five essentials, nothing you don't need — formulated with clinicians and made in small batches.", cta:'Build your routine', heroImg:'Product still life', social:'Recommended by 200+ dermatologists' },
+      proof:['VOGUE','BYRDIE','GOOP'], howLabel:'THE ROUTINE',
+      how:[{t:'Cleanse',d:'A gentle gel that respects your barrier and rinses completely clean.'},{t:'Treat',d:'One serum, chosen for your skin — not a shelf of half-used bottles.'},{t:'Protect',d:'A weightless moisturiser and SPF that actually feels like nothing.'}],
+      featLabel:'THE ESSENTIALS', featImg:'product',
+      feats:[{name:'The Cleanser',meta:'Amino-acid gel · all skin types',tag:'$28'},{name:'The Serum',meta:'Niacinamide + bakuchiol',tag:'$46'},{name:'The Cream',meta:'Squalane + oat barrier repair',tag:'$38'}],
+      quote:'"My routine went from twelve steps to five — and my skin has never looked better."', quoteBy:'Priya N. · customer since 2022',
+      footFlat:['© Maren','Ingredients','Sustainability','Stockists','Contact'],
+      dots:[
+        { id:'headline', n:1, kind:'text', top:222, left:730, popTop:285, popLeft:293, region:'Hero headline', field:'headline',
+          critique:'"Skincare, quietly effective." is pretty but vague. Anchor it in a benefit?', prompt:'Pick a headline direction:',
+          options:[{id:'blunt',value:'Five products. Better skin.',vibe:'Minimal · blunt',tag:'Minimal, blunt headlines'},{id:'relief',value:'The whole routine, finally simplified.',vibe:'Relief · promise',tag:'Relief-led promise'},{id:'premium',value:'Clinically proven. Quietly luxurious.',vibe:'Premium · proof',tag:'Premium, proof-led tone'}] },
+        { id:'subhead', n:5, kind:'text', top:322, left:700, popTop:360, popLeft:293, region:'Subhead voice', field:'subhead',
+          critique:'The subhead sells simplicity. Could it sell trust?', prompt:'Rewrite the subhead voice:',
+          options:[{id:'clinical',value:'Dermatologist-formulated, fragrance-free, and proven in independent testing.',vibe:'Clinical · trust',tag:'Clinical, trust-led copy'},{id:'edit',value:'The five things your skin actually needs — and nothing it does not.',vibe:'Editing · clarity',tag:'Clarity-led editing'},{id:'craft',value:'Made in small batches with ingredients you can pronounce.',vibe:'Honest · craft',tag:'Honest, craft voice'}] },
+        { id:'cta', n:3, kind:'text', top:402, left:545, popTop:430, popLeft:293, region:'Primary CTA', field:'cta',
+          critique:'"Build your routine" sounds like work. Make it feel effortless?', prompt:'Try a different invitation:',
+          options:[{id:'find',value:'Find my five',vibe:'Personal · light',tag:'Personal, light CTAs'},{id:'shop',value:'Shop the essentials',vibe:'Direct',tag:'Direct CTAs'},{id:'quiz',value:'Take the 60-second quiz',vibe:'Guided · low-effort',tag:'Guided, low-effort CTAs'}] },
+        { id:'image', n:4, kind:'text', top:480, left:820, popTop:300, popLeft:548, region:'Hero image', field:'heroImg',
+          critique:'A flat still life is the beauty default. What feels more Maren?', prompt:'Swap the hero image direction:',
+          options:[{id:'still',value:'Product still life',vibe:'Classic catalogue',tag:'Catalogue imagery'},{id:'texture',value:'Texture macro — the cream itself',vibe:'Sensory · tactile',tag:'Tactile, sensory imagery'},{id:'skin',value:'On real skin, morning light',vibe:'Honest · in-use',tag:'Honest, in-use imagery'}] },
+        'PALETTE',
+        { id:'social', n:6, kind:'text', top:839, left:480, popTop:865, popLeft:200, region:'Social proof', field:'social',
+          critique:'"200+ dermatologists" leans on authority. Is there warmer proof?', prompt:'Choose what to prove:',
+          options:[{id:'reviews',value:'4.8 from 11,000 verified reviews',vibe:'Earned · specific',tag:'Specific review proof'},{id:'result',value:'92% saw calmer skin in four weeks',vibe:'Outcome · clinical',tag:'Clinical outcome proof'},{id:'press',value:'As seen in Vogue, Byrdie & Goop',vibe:'Editorial',tag:'Editorial credibility'}] },
+      ],
+      paletteDot:[700,140,300,44,'The palette is safe spa-beige. What mood should the brand own?'],
+    },
+  };
+
+  brandOrder = ['ember','cadence','maren'];
+
+  constructor(props){
+    super(props);
+    this.canvasRef = React.createRef();
+    this.frameRef = React.createRef();
+    this.railRef = React.createRef();
+  }
+
+  state = {
+    screen:'start', activeBrand:'ember', openDot:null,
+    page:{ headline:'', subhead:'', cta:'', heroImg:'', social:'', palette:'warmEarthy' },
+    resolvedDots:{}, dismissed:[], versions:[], preview:null,
+  };
+
+  brandDots(key){
+    const br = this.brands[key];
+    return br.dots.map(d => d==='PALETTE' ? this.mkPaletteDot(...br.paletteDot) : d);
+  }
+
+  choose(key){
+    const br = this.brands[key];
+    this.setState({
+      screen:'workspace', activeBrand:key, openDot:null, preview:null,
+      page:{ ...br.defaults, palette:br.palKey },
+      resolvedDots:{}, dismissed:[],
+      versions:[{ n:1, palette:br.palKey, headline:br.defaults.headline, note:'Starting point' }],
+    });
+    requestAnimationFrame(()=>{ if(this.canvasRef.current) this.canvasRef.current.scrollTo({top:0,left:0}); });
+  }
+
+  scrollToDot(d){
+    requestAnimationFrame(()=>{
+      const c=this.canvasRef.current, f=this.frameRef.current;
+      if(!c||!f) return;
+      const top=Math.max(0, f.offsetTop + d.top - 150);
+      const left=Math.max(0, f.offsetLeft + d.left - c.clientWidth/2);
+      c.scrollTo({ top, left, behavior:'smooth' });
+    });
+  }
+
+  openComment(d){
+    const willOpen = this.state.openDot !== d.id;
+    this.setState({ openDot: willOpen ? d.id : null, preview:null });
+    if(willOpen) this.scrollToDot(d);
+  }
+
+  previewOpt(d,o){
+    this.setState(s=>{
+      const cur = s.preview;
+      if(cur && cur.dotId===d.id && cur.optId===o.id) return { preview:null };
+      return { preview:{ dotId:d.id, optId:o.id, field:d.field, value:o.value } };
+    });
+  }
+
+  accept(d,o){
+    this.setState(s=>{
+      const page = { ...s.page, [d.field]:o.value };
+      const dismissed = s.dismissed.filter(x=>x.tag!==o.tag);
+      const palKey = d.field==='palette' ? o.value : page.palette;
+      const chosen = d.field==='palette' ? (o.vibe+' palette') : o.value;
+      const resolvedDots = { ...s.resolvedDots, [d.id]:chosen };
+      const versions = [...s.versions, { n:s.versions.length+1, palette:palKey, headline:page.headline, note:d.region }];
+      return { page, dismissed, resolvedDots, versions, openDot:null, preview:null };
+    });
+  }
+
+  dismissOpt(d,o){
+    this.setState(s=>{
+      if(s.dismissed.some(x=>x.tag===o.tag)) return {};
+      return { dismissed:[...s.dismissed, { tag:o.tag }] };
+    });
+  }
+
+  renderVals(){
+    const s = this.state;
+    const br = this.brands[s.activeBrand] || this.brands.ember;
+    const pv = s.preview || null;
+    const view = { ...s.page };
+    if(pv) view[pv.field] = pv.value;
+    const pal = this.palettes[view.palette] || this.palettes[br.palKey];
+    const isWorkspace = s.screen==='workspace';
+    const allDots = this.brandDots(s.activeBrand);
+    const numerals = ['','01','02','03','04'];
+
+    const pageStyle = {
+      '--bg':pal.bg, '--surface':pal.surface, '--ink':pal.ink, '--sub':pal.sub,
+      '--accent':pal.accent, '--accentInk':pal.accentInk, '--line':pal.line, '--hero':pal.hero,
+      '--display':pal.display, '--dispWeight':pal.dispWeight, '--dispLs':pal.dispLs,
+      position:'relative', width:'920px', margin:'0 auto', background:pal.bg, color:pal.ink,
+      borderRadius:'13px', border:'1px solid rgba(0,0,0,0.09)',
+      boxShadow:'0 22px 60px -20px rgba(20,16,10,0.32)', overflow:'hidden',
+      fontFamily:'"Manrope", sans-serif', transition:'background .45s ease, color .45s ease',
+    };
+
+    const dots = isWorkspace ? allDots.map(d=>{
+      const open = s.openDot===d.id;
+      const idle = s.openDot==null && d.id==='headline';
+      return {
+        n:d.n, key:d.id, onClick:()=>this.openComment(d),
+        style:{
+          position:'absolute', top:d.top+'px', left:d.left+'px', transform:'translate(-50%,-50%)',
+          width:'27px', height:'27px', borderRadius:'50%',
+          background: open ? '#3730a3' : '#4f46e5', color:'#fff',
+          border:'2.5px solid #fff', fontFamily:'"Manrope", sans-serif', fontWeight:'800', fontSize:'12.5px',
+          display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', zIndex:8,
+          boxShadow: open ? '0 0 0 5px rgba(79,70,229,.22), 0 3px 8px rgba(0,0,0,.3)' : '0 2px 6px rgba(0,0,0,.32)',
+          animation: idle ? 'ate-ping 1.9s ease-out infinite' : 'none',
+          transition:'background .15s ease, box-shadow .15s ease',
+        },
+      };
+    }) : [];
+
+    let openDot = null;
+    if(isWorkspace && s.openDot){
+      const d = allDots.find(x=>x.id===s.openDot);
+      const cardBase = { position:'relative', display:'flex', alignItems:'center', gap:'10px', background:'#fff', border:'1px solid #ececef', borderRadius:'10px', padding:'10px 11px', transition:'border-color .15s ease, background .15s ease' };
+      openDot = {
+        n:d.n, region:d.region, critique:d.critique, prompt:d.prompt,
+        isText: d.kind!=='palette', isPalette: d.kind==='palette',
+        previewing: !!(pv && pv.dotId===d.id),
+        onClose:()=>this.setState({ openDot:null, preview:null }),
+        style:{
+          position:'absolute', top:d.popTop+'px', left:d.popLeft+'px', width:'334px', zIndex:9,
+          background:'#fff', border:'1px solid #e6e6ec', borderRadius:'14px', padding:'15px 15px 14px',
+          boxShadow:'0 24px 60px -16px rgba(20,16,30,0.34), 0 2px 8px rgba(0,0,0,0.08)',
+          animation:'ate-pop .2s cubic-bezier(.2,.8,.2,1)', fontFamily:'"Manrope", sans-serif',
+        },
+        options: d.options.map(o=>{
+          const isCurrent = s.page[d.field]===o.value;
+          const isDismissed = s.dismissed.some(x=>x.tag===o.tag);
+          const isPreviewing = !!(pv && pv.dotId===d.id && pv.optId===o.id);
+          const clickable = !isCurrent && !isDismissed;
+          return {
+            key:o.id, value:o.value, vibe:o.vibe, swatch:o.swatch||[],
+            isCurrent, previewing:isPreviewing, showActions: clickable,
+            onCardClick: clickable ? ()=>this.previewOpt(d,o) : null,
+            cardStyle:{ ...cardBase, cursor: clickable?'pointer':'default', background:isPreviewing?'#eef0ff':(isCurrent?'#f6f5ff':'#fff'), borderColor:isPreviewing?'#9aa0f5':(isCurrent?'#dcdcff':'#ececef'), opacity:isDismissed?0.55:1 },
+            onAccept:(e)=>{ if(e&&e.stopPropagation) e.stopPropagation(); this.accept(d,o); },
+          };
+        }),
+      };
+    }
+
+    const comments = isWorkspace ? allDots.slice().sort((a,b2)=>a.n-b2.n).map(d=>{
+      const active = s.openDot===d.id;
+      const resolved = !!s.resolvedDots[d.id];
+      return {
+        key:d.id, n:d.n, region:d.region, critique:d.critique,
+        active, resolved, chosen:s.resolvedDots[d.id]||'',
+        badgeText: resolved ? '✓' : d.n, statusText: resolved ? 'Resolved' : 'Open',
+        onClick:()=>this.openComment(d),
+        rowStyle:{ display:'flex', gap:'11px', alignItems:'flex-start', padding:'13px 16px', cursor:'pointer', borderBottom:'1px solid #f4f4f6', borderLeft: active?'3px solid #4f46e5':'3px solid transparent', background: active?'#f6f6ff':'#fff', opacity:(resolved&&!active)?0.78:1, transition:'background .12s ease' },
+        badgeStyle:{ width:'23px', height:'23px', flex:'0 0 auto', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize: resolved?'12px':'11.5px', fontWeight:'800', marginTop:'1px', background: resolved?'#e7f3ec':(active?'#4f46e5':'#eef0ff'), color: resolved?'#3f8f5f':(active?'#fff':'#4f46e5') },
+        statusStyle:{ fontSize:'9.5px', fontWeight:'700', letterSpacing:'.4px', padding:'2px 7px', borderRadius:'999px', background: resolved?'#e7f3ec':'#f4f4f6', color: resolved?'#3f8f5f':'#a1a1aa' },
+      };
+    }) : [];
+    const resolvedCount = comments.filter(c=>c.resolved).length;
+
+    const versions = s.versions.map((v,i)=>{
+      const p = this.palettes[v.palette];
+      const current = i===s.versions.length-1;
+      return { key:'v'+v.n, n:'v'+v.n, note:v.note, bg:p.bg, accent:p.accent, ink:p.ink, headline:v.headline, showArrow:i>0,
+        cardStyle:{ width:'120px', flex:'0 0 auto', borderRadius:'9px', overflow:'hidden', border: current?'2px solid #4f46e5':'1px solid #e7e7ec', boxShadow: current?'0 4px 14px -4px rgba(79,70,229,.4)':'0 1px 3px rgba(0,0,0,.05)', background:'#fff' } };
+    });
+
+    const brandsList = this.brandOrder.map(k=>({
+      key:k, name:this.brands[k].name, category:this.brands[k].category, desc:this.brands[k].desc,
+      isEmber:k==='ember', isCadence:k==='cadence', isMaren:k==='maren', onChoose:()=>this.choose(k),
+    }));
+
+    const bView = { ...br, nameCaps: br.nameCaps || br.name, how: br.how.map((st,i)=>({ ...st, n:i+1, nn:numerals[i+1] })) };
+
+    return {
+      isStart: s.screen==='start', isWorkspace,
+      isEmber: s.activeBrand==='ember', isCadence: s.activeBrand==='cadence', isMaren: s.activeBrand==='maren',
+      brandsList, b:bView, brandLabel: br.name+' · '+br.category,
+      pageStyle, page:s.page, view, pal,
+      dots, openDot, hasOpen: !!openDot,
+      comments, resolvedLabel: resolvedCount+' / '+comments.length+' resolved',
+      versions, showLineage: this.props.showLineage ?? true,
+      canvasRef:this.canvasRef, frameRef:this.frameRef, railRef:this.railRef,
+      onStartOver:()=>this.setState({ screen:'start', openDot:null, preview:null }),
+    };
+  }
+}
+</script>
+</body>
+</html>

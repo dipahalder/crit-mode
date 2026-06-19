@@ -1,4 +1,20 @@
+import { useEffect } from 'react'
+import { brandOrder, brands } from './data/brands'
+
 export default function App() {
+  // M1 verification: log all three brands with their six dots and options.
+  // Open the browser console to confirm the data model loads (see "Done when").
+  useEffect(() => {
+    brandOrder.forEach((key) => {
+      const b = brands[key]
+      console.log(
+        `${b.name} (${b.category}) — ${b.dots.length} dots`,
+        b.dots.map((d) => ({ n: d.n, region: d.region, field: d.field, options: d.options.length })),
+      )
+    })
+    console.log('brands loaded:', brandOrder.map((k) => brands[k].name).join(', '))
+  }, [])
+
   return (
     <div
       style={{
