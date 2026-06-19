@@ -1,11 +1,25 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { brands, palettes } from './data/brands'
-import type { BrandKey, Dot, Option, Page, PaletteKey, Preview, Screen, Version } from './types'
+import type { BrandKey, CritiqueResponse, Dot, Option, Page, PaletteKey, Preview, Screen, Version } from './types'
 import { clean } from './utils/clean'
 import TopBar from './components/TopBar'
 import StartScreen from './components/StartScreen'
 import Workspace from './components/Workspace'
+
+// Merge a live critique over a static dot (M11). Text dots take the generated
+// critique/prompt/options; palette dots keep their static options (the fixed
+// themes + swatches) and only take the generated critique/prompt.
+function mergeDot(d: Dot, live: CritiqueResponse | undefined): Dot {
+  if (!live) return d
+  if (d.kind === 'palette') return { ...d, critique: live.critique, prompt: live.prompt }
+  return {
+    ...d,
+    critique: live.critique,
+    prompt: live.prompt,
+    options: live.options.map((o, i) => ({ id: `llm-${i}`, value: o.value, vibe: o.vibe, tag: o.tag })),
+  }
+}
 
 // App shell from Atelier.dc.html: a full-height column with the top bar above a
 // content area that shows either the start-screen picker or the workspace.
@@ -27,6 +41,9 @@ export default function App() {
   const [preview, setPreview] = useState<Preview | null>(null)
   const [resolvedDots, setResolvedDots] = useState<Record<string, string>>({})
   const [versions, setVersions] = useState<Version[]>([])
+  // Live critiques keyed by dot id, and the dots currently being fetched (M11).
+  const [live, setLive] = useState<Record<string, CritiqueResponse>>({})
+  const [loadingIds, setLoadingIds] = useState<string[]>([])
 
   // chooseBrand: reset the page to the brand's defaults + palette, reset the
   // lineage to v1, clear any open note and preview, enter the workspace.
@@ -39,11 +56,13 @@ export default function App() {
     setVersions([{ n: 1, palette: br.palKey, headline: br.defaults.headline, note: 'Starting point' }])
     setOpenDot(null)
     setPreview(null)
+    setLive({})
     setScreen('workspace')
   }
   function switchBrand() {
     setOpenDot(null)
     setPreview(null)
+    setLive({})
     setScreen('start')
   }
   // openNote toggles the open dot and clears any preview (so try-ons never
@@ -75,6 +94,44 @@ export default function App() {
   }
 
   const brand = brands[activeBrand]
+
+  // Fetch live critiques on brand-pick and after each Accept (page changes only
+  // on those, not on preview). Debounced + abortable; on any failure the dot
+  // keeps its static critique (client-side fallback, guardrail 3). The "page"
+  // dependency is what makes the next round reflect the changed page.
+  useEffect(() => {
+    if (screen !== 'workspace') return
+    const dots = brands[activeBrand].dots
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => {
+      setLoadingIds(dots.map((d) => d.id))
+      dots.forEach(async (d) => {
+        try {
+          const r = await fetch('/critique', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ brand: activeBrand, region: d.field, pageModel: page }),
+            signal: ctrl.signal,
+          })
+          if (!r.ok) throw new Error(`status ${r.status}`)
+          const data: CritiqueResponse = await r.json()
+          if (!ctrl.signal.aborted) setLive((prev) => ({ ...prev, [d.id]: data }))
+        } catch {
+          // server down, network error, or aborted: keep the static critique.
+        } finally {
+          if (!ctrl.signal.aborted) setLoadingIds((prev) => prev.filter((id) => id !== d.id))
+        }
+      })
+    }, 250)
+    return () => {
+      clearTimeout(timer)
+      ctrl.abort()
+    }
+  }, [page, activeBrand, screen])
+
+  // Effective dots: static dots with any live critique merged over them.
+  const dots = brand.dots.map((d) => mergeDot(d, live[d.id]))
+
   // Derived render model (guardrail 1): during a preview, render from view, not
   // the committed page, so the try-on is visible without committing.
   const view: Page = preview ? ({ ...page, [preview.field]: preview.value } as Page) : page
@@ -90,6 +147,7 @@ export default function App() {
         ) : (
           <Workspace
             brand={brand}
+            dots={dots}
             page={page}
             view={view}
             pal={pal}
@@ -97,6 +155,7 @@ export default function App() {
             preview={preview}
             resolvedDots={resolvedDots}
             versions={versions}
+            loadingIds={loadingIds}
             onOpenNote={openNote}
             onCloseNote={closeNote}
             onPreviewOption={previewOption}

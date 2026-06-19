@@ -70,6 +70,7 @@ interface Measured {
 
 export default function Workspace({
   brand,
+  dots,
   page,
   view,
   pal,
@@ -77,12 +78,14 @@ export default function Workspace({
   preview,
   resolvedDots,
   versions,
+  loadingIds,
   onOpenNote,
   onCloseNote,
   onPreviewOption,
   onAcceptOption,
 }: {
   brand: Brand
+  dots: Dot[]
   page: Page
   view: Page
   pal: Palette
@@ -90,6 +93,7 @@ export default function Workspace({
   preview: Preview | null
   resolvedDots: Record<string, string>
   versions: Version[]
+  loadingIds: string[]
   onOpenNote: (id: string) => void
   onCloseNote: () => void
   onPreviewOption: (next: Preview) => void
@@ -125,7 +129,7 @@ export default function Workspace({
     const sy = canvas.scrollTop
     const fr = frame.getBoundingClientRect()
     const next: Measured[] = []
-    for (const d of brand.dots) {
+    for (const d of dots) {
       const el = targets.current.get(d.field)
       if (!el) continue
       const r = el.getBoundingClientRect()
@@ -133,7 +137,7 @@ export default function Workspace({
     }
     setMeasured(next)
     setFrameBounds({ left: fr.left - c.left + sx, width: fr.width })
-  }, [brand])
+  }, [dots])
 
   useLayoutEffect(() => {
     measure()
@@ -175,7 +179,7 @@ export default function Workspace({
     (id: string) => {
       const canvas = canvasRef.current
       if (!canvas) return
-      const d = brand.dots.find((x) => x.id === id)
+      const d = dots.find((x) => x.id === id)
       if (!d) return
       const el = targets.current.get(d.field)
       if (!el) return
@@ -185,7 +189,7 @@ export default function Workspace({
       const left = Math.max(0, r.left - c.left + canvas.scrollLeft + r.width / 2 - canvas.clientWidth / 2)
       canvas.scrollTo({ top, left, behavior: 'smooth' })
     },
-    [brand],
+    [dots],
   )
 
   // Open/toggle a note from a pin or a rail row; scroll to it when opening.
@@ -201,7 +205,7 @@ export default function Workspace({
   // Popover placement (M7): open opposite the element so it stays visible.
   // Left-ish element opens right, right-ish opens left, centered opens below.
   const openMeasured = openDot ? measured.find((m) => m.id === openDot) : undefined
-  const openDotData = openDot ? brand.dots.find((d) => d.id === openDot) : undefined
+  const openDotData = openDot ? dots.find((d) => d.id === openDot) : undefined
   let pop: { left: number; top: number } | null = null
   if (openMeasured && frameBounds) {
     const cx = openMeasured.left + openMeasured.w / 2
@@ -234,7 +238,9 @@ export default function Workspace({
         {/* Pin overlay (canvas-content coords; scrolls with the page). */}
         {measured.map((m) => {
           const isOpen = openDot === m.id
-          const pulse = openDot == null && m.id === 'headline'
+          // Pulse while this dot's critique is loading (thinking), or the
+          // headline pin at rest to invite the first click.
+          const pulse = loadingIds.includes(m.id) || (openDot == null && m.id === 'headline')
           return (
             <button key={m.id} type="button" onClick={() => handleOpen(m.id)} style={pinStyle(m.left + m.w / 2, m.top + m.h / 2, isOpen, pulse)}>
               {m.n}
@@ -256,7 +262,7 @@ export default function Workspace({
         )}
       </div>
 
-      <CommentsRail brand={brand} openDot={openDot} resolvedDots={resolvedDots} onRowClick={handleOpen} />
+      <CommentsRail dots={dots} openDot={openDot} resolvedDots={resolvedDots} onRowClick={handleOpen} />
     </div>
   )
 }

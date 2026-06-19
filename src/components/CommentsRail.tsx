@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import type { Brand } from '../types'
+import type { Dot } from '../types'
 import { clean } from '../utils/clean'
 
 // The 320px comments rail (M6): a sticky header with a resolved/total pill and
@@ -68,17 +68,17 @@ const clamp2: CSSProperties = {
 }
 
 export default function CommentsRail({
-  brand,
+  dots,
   openDot,
   resolvedDots = {},
   onRowClick,
 }: {
-  brand: Brand
+  dots: Dot[]
   openDot: string | null
   resolvedDots?: Record<string, string>
   onRowClick: (id: string) => void
 }) {
-  const rows = brand.dots.slice().sort((a, b) => a.n - b.n)
+  const rows = dots.slice().sort((a, b) => a.n - b.n)
   const total = rows.length
   const resolvedCount = rows.filter((d) => resolvedDots[d.id]).length
 

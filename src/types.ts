@@ -20,6 +20,15 @@ export type Screen = 'start' | 'workspace'
 // element so its bounding box can be measured for pin placement (M5).
 export type RegisterTarget = (field: FieldKey) => (el: HTMLElement | null) => void
 
+// The /critique endpoint contract (M11). The server returns this for a region,
+// generated live or as the static fallback. swatch is included for palette
+// options so the client can render their swatches.
+export interface CritiqueResponse {
+  critique: string
+  prompt: string
+  options: Array<{ value: string; vibe: string; tag: string; swatch?: string[] }>
+}
+
 // A palette is a set of design tokens applied as CSS custom properties (M3).
 export interface Palette {
   bg: string
