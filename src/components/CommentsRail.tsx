@@ -55,12 +55,31 @@ const clamp2: CSSProperties = {
   maxHeight: 36,
 }
 
+// In-app verifier (dev/demo aid): shows whether the critiques on screen came
+// from Claude ('live'), are still loading, or are the authored fallback copy.
+function SourceBadge({ state }: { state: 'live' | 'loading' | 'static' }) {
+  const cfg =
+    state === 'live'
+      ? { dot: '#22a06b', text: 'Live', color: '#1a7a51', bg: '#e8f6ef', pulse: false }
+      : state === 'loading'
+        ? { dot: '#4f46e5', text: 'Critiquing', color: '#4f46e5', bg: '#eef0ff', pulse: true }
+        : { dot: '#a1a1aa', text: 'Static', color: '#71717a', bg: '#f2f2f4', pulse: false }
+  return (
+    <span title="Whether these critiques came from the model or the authored fallback" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 600, color: cfg.color, background: cfg.bg, borderRadius: 999, padding: '2px 8px 2px 6px' }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: cfg.dot, animation: cfg.pulse ? 'ate-blink 1.1s ease-in-out infinite' : 'none' }} />
+      {cfg.text}
+    </span>
+  )
+}
+
 export default function CommentsRail({
   dots,
   openDot,
   resolvedDots = {},
   showComments,
   critiquing,
+  refreshing,
+  liveState,
   persona,
   onSetPersona,
   onToggleComments,
@@ -71,6 +90,8 @@ export default function CommentsRail({
   resolvedDots?: Record<string, string>
   showComments: boolean
   critiquing: boolean
+  refreshing: boolean
+  liveState: 'live' | 'loading' | 'static'
   persona: PersonaInfo
   onSetPersona: (p: Persona) => void
   onToggleComments: () => void
@@ -79,15 +100,23 @@ export default function CommentsRail({
   const rows = dots // already ordered top-to-bottom by the workspace (M14)
   const total = rows.length
   const resolvedCount = rows.filter((d) => resolvedDots[d.id]).length
-  const ready = showComments && !critiquing // personas + counter appear once loaded
+  // The persona switcher stays visible while switching perspective (so you can
+  // see which one is loading), but not during the very first load.
+  const ready = showComments && !critiquing
+  // The resolved counter only shows once a stable round is on screen: during any
+  // load we do not yet know how many comments there will be.
+  const showCount = ready && liveState !== 'loading'
 
   return (
     <div style={railStyle}>
       <div style={headerStyle}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.2px' }}>Comments</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+            <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.2px' }}>Comments</span>
+            <SourceBadge state={liveState} />
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {ready && (
+            {showCount && (
               <span style={{ fontSize: 11.5, fontWeight: 600, color: '#4f46e5', background: '#eef0ff', borderRadius: 999, padding: '3px 9px' }}>
                 {resolvedCount} / {total} resolved
               </span>
@@ -133,12 +162,18 @@ export default function CommentsRail({
                 )
               })}
             </div>
-            <p style={{ fontSize: 12, lineHeight: 1.5, color: '#8e8e98', margin: '11px 0 0' }}>{clean(`Critique from a ${persona.role.toLowerCase()} point of view. Generated perspectives, not real reviewers.`)}</p>
+            <p style={{ fontSize: 12, lineHeight: 1.5, color: '#8e8e98', margin: '11px 0 0' }}>{clean(`Critique from the simulated perspective of a ${persona.role.toLowerCase()}.`)}</p>
           </>
         ) : null}
       </div>
 
-      {showComments && (
+      {showComments && liveState === 'loading' && rows.length === 0 && (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 16px' }}>
+          <span className="ate-spinner" style={{ width: 22, height: 22 }} />
+        </div>
+      )}
+
+      {showComments && rows.length > 0 && (
         <div>
           {rows.map((d) => {
             const active = openDot === d.id
@@ -165,7 +200,14 @@ export default function CommentsRail({
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#18181b', letterSpacing: '-0.1px', whiteSpace: 'nowrap' }}>{clean(d.region)}</span>
                   <span style={{ ...statusBase, color: resolved ? '#3f8f5f' : '#a1a1aa', border: `0.5px solid ${resolved ? '#bfe0cc' : '#e4e4e9'}` }}>{resolved ? 'Resolved' : 'Open'}</span>
                 </div>
-                <div style={clamp2}>{clean(d.critique)}</div>
+                {refreshing && !resolved ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '2px 0' }}>
+                    <span className="ate-skeleton" style={{ height: 9, width: '100%' }} />
+                    <span className="ate-skeleton" style={{ height: 9, width: '72%' }} />
+                  </div>
+                ) : (
+                  <div style={clamp2}>{clean(d.critique)}</div>
+                )}
                 {resolved && (
                   <div style={{ fontSize: 11.5, marginTop: 6, display: 'flex', gap: 5, alignItems: 'baseline' }}>
                     <span style={{ color: '#3f8f5f', fontWeight: 700 }}>→</span>

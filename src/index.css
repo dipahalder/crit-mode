@@ -92,6 +92,38 @@ body {
   animation: ate-fade 0.35s ease;
 }
 
+/* Spinner for the comments rail while a round loads. */
+@keyframes ate-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.ate-spinner {
+  display: inline-block;
+  border-radius: 50%;
+  border: 2px solid #e4e4e9;
+  border-top-color: #4f46e5;
+  animation: ate-spin 0.7s linear infinite;
+}
+
+/* Skeleton shimmer for critique text while a live round is in flight, so the
+   authored fallback copy never reads as the final answer. */
+@keyframes ate-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+.ate-skeleton {
+  display: block;
+  background: linear-gradient(90deg, #ececf0 25%, #f6f6f9 37%, #ececf0 63%);
+  background-size: 200% 100%;
+  animation: ate-shimmer 1.3s ease-in-out infinite;
+  border-radius: 5px;
+}
+
 /* Popover entrance, lifted verbatim from Atelier.dc.html (M7). */
 @keyframes ate-pop {
   from {

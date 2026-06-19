@@ -9,7 +9,7 @@ import BrandThumbnail from './BrandThumbnail'
 
 const FEATURES = [
   { title: 'Promptless iteration', desc: 'React to the notes, never write a prompt.' },
-  { title: 'View from various perspectives', desc: 'Toggle between different perspectives to see your designs from different angles.' },
+  { title: 'View from various perspectives', desc: 'Toggle between different personas to understand your designs from different angles.' },
   { title: 'Keep what works', desc: 'Try alternatives live, accept the takes you like.' },
 ]
 
@@ -22,7 +22,7 @@ export default function StartScreen({ onChoose }: { onChoose: (key: BrandKey) =>
           <span style={{ fontSize: 11.5, fontWeight: 600, color: '#4f46e5', background: '#eef0ff', borderRadius: 999, padding: '3px 10px' }}>Demo</span>
         </div>
         <h1 style={{ fontSize: 46, lineHeight: 1.04, fontWeight: 800, letterSpacing: '-1.8px', margin: '0 0 16px', color: '#18181b', maxWidth: 760 }}>{clean('Sharpen your designs by reacting to them.')}</h1>
-        <p style={{ fontSize: 17, lineHeight: 1.55, color: '#52525b', marginBottom: 36, maxWidth: 620 }}>{clean('Pick one of the sample designs below to start. Suggestions are pinned right on top of your designs, in context.')}</p>
+        <p style={{ fontSize: 17, lineHeight: 1.55, color: '#52525b', marginBottom: 36, maxWidth: 620 }}>{clean('Pick one of the sample designs below to start. Suggestions are overlaid in-context over your designs.')}</p>
 
         {/* Value props */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 22 }}>

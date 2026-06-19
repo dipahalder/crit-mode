@@ -39,6 +39,15 @@ Never use em dashes or en dashes. Use periods or commas. Do not use growth
 marketing language such as convert, CTR, or urgency. Return JSON only, no prose,
 no markdown fences.`
 
+// Persona-agnostic format + quality rules for the multi-region pass. The critic's
+// identity and lens come from the persona voice, NOT from here, so each
+// perspective surfaces its own kind of insight rather than a generic design crit.
+const CRITIQUE_RULES = `Write each critique as a taste position in your own voice, not a generic correction: one specific observation tied to THIS brand and THIS page, never personal taste. Be concise: the critique is at most two short sentences, about 25 words. The prompt is a brief call to choose, under eight words, for example "Pick a headline direction:".
+
+Produce 2 to 3 options that are genuinely different directions, never ranked, never "the better version." Each option has a short vibe descriptor and the concrete value to apply.
+
+Never use em dashes or en dashes. Use periods or commas. Do not use growth marketing language such as convert, CTR, or urgency. Return JSON only, no prose, no markdown fences.`
+
 // The static dot for a region, mapped to the response contract. This is the
 // FALLBACK and must always be valid. clean() scrubs em dashes (guardrail 4).
 function fallbackFor(brand: BrandKey, region: FieldKey): CritiqueResponse {
@@ -146,12 +155,13 @@ function cleanPaletteOptions(raw: unknown) {
     for (const r of raw) {
       const o = r as Record<string, unknown>
       const name = typeof o.value === 'string' && o.value.trim() ? o.value.trim() : typeof o.vibe === 'string' ? o.vibe.trim() : ''
+      const desc = typeof o.vibe === 'string' && o.vibe.trim() ? o.vibe.trim() : name
       const bg = hex(o.bg)
       const ink = hex(o.ink)
       const accent = hex(o.accent)
       const heroC = hex(o.hero)
       if (!name || !bg || !ink || !accent || !heroC) continue
-      out.push({ value: clean(name), vibe: clean(name), tag: clean(name), swatch: [accent, heroC, ink], palette: derivePalette(bg, ink, accent, heroC, o.display === 'serif') })
+      out.push({ value: clean(name), vibe: clean(desc), tag: clean(desc), swatch: [accent, heroC, ink], palette: derivePalette(bg, ink, accent, heroC, o.display === 'serif') })
       if (out.length >= 3) break
     }
   }
@@ -266,17 +276,22 @@ async function generateMany(brand: BrandKey, pageModel: Record<string, unknown>,
   const pinned = Array.isArray(targets) ? (targets as string[]).filter((t) => validFields.has(t)) : []
   const selection = pinned.length
     ? `Critique exactly these regions, by id: ${pinned.join(', ')}.`
-    : 'Choose the 4 to 6 regions with the most leverage. Spread them across the page rather than clustering, and skip regions that are already strong.'
+    : 'Choose the 3 to 5 regions THIS point of view would most want to change, and skip the ones it would not care about. A different critic should land on a different set of regions and raise different concerns, so choose what is distinctive to your lens, not the obvious universal picks.'
 
-  const system = `You are ${p.voice}.\n\n${SYSTEM_PROMPT}\n\nYou are reviewing a whole landing page and deciding what is worth commenting on. Stay in this point of view and its priorities.`
+  const system = `You are ${p.voice}
+
+You are reviewing a whole landing page and deciding what is worth commenting on, strictly from this point of view. Different critics notice different things: raise the concerns this lens raises, in its vocabulary, and ignore what it would not care about. Do not fall back to a generic, all-purpose design critique.
+
+${CRITIQUE_RULES}`
   const user = `Brand: ${b.name} (${b.category}).
 Regions you may critique (id, kind, section, current text):
 ${inv.map((it) => `- ${it.id} [${it.kind}] (${it.section}): ${JSON.stringify(it.text)}`).join('\n')}
 Full current page model: ${JSON.stringify(pageModel)}.
 
 ${selection}
-For each chosen region write one critique and 2 to 3 taste-different options, shaped {"value": string, "vibe": string}.
-For the "palette" region, instead suggest 2 to 3 distinct color moods that genuinely fit THIS brand and product (for botanical skincare lean greens and naturals; for a coffee brand warm earth tones; for a productivity tool cooler or bolder tech tones). Each palette option is {"value": short mood name, "bg": hex, "ink": hex, "accent": hex, "hero": hex, "display": "serif" or "sans"} using real #rrggbb colors. bg is the page background, ink the body text, accent the buttons and highlights, hero the image tint.
+For each chosen region write one critique, a short prompt, and 2 to 3 taste-different options.
+Options for EVERY region except "palette" are shaped {"value": string, "vibe": string}.
+The "palette" region is the exception and is critical: its options are color moods, NOT {value, vibe}. Each palette option MUST be shaped {"value": short mood name, "vibe": short descriptor, "bg": "#rrggbb", "ink": "#rrggbb", "accent": "#rrggbb", "hero": "#rrggbb", "display": "serif" or "sans"} with four REAL hex colors that fit THIS brand and product (botanical skincare leans greens and naturals; coffee leans warm earth tones; a productivity tool leans cooler or bolder tech tones). bg is the page background, ink the body text, accent the buttons and highlights, hero the image tint. Never emit a palette option missing any of bg, ink, accent, or hero. Example palette option: {"value":"Sage & Clay","vibe":"Soft, herbal, natural","bg":"#f7f3ec","ink":"#3a3a32","accent":"#8a9a7b","hero":"#dbcbb6","display":"serif"}.
 Return JSON only: {"critiques":[{"targetId":string,"critique":string,"prompt":string,"options":[ ... ]}]}.`
 
   const message = await client!.messages.create({ model: MODEL, max_tokens: 2048, system, messages: [{ role: 'user', content: user }] })

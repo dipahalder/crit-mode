@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Brand, Dot, FieldKey, Option, Page, Palette, Persona, PersonaInfo, Preview, RegisterTarget, Version } from '../types'
+import { clean } from '../utils/clean'
 import PageFrame from './PageFrame'
 import EmberLayout from './EmberLayout'
 import CadenceLayout from './CadenceLayout'
@@ -97,6 +98,9 @@ export default function Workspace({
   resolvedDots,
   versions,
   critiquing,
+  personaSwitching,
+  refreshing,
+  liveState,
   persona,
   onSetPersona,
   onOpenNote,
@@ -114,6 +118,9 @@ export default function Workspace({
   resolvedDots: Record<string, string>
   versions: Version[]
   critiquing: boolean
+  personaSwitching: boolean
+  refreshing: boolean
+  liveState: 'live' | 'loading' | 'static'
   persona: PersonaInfo
   onSetPersona: (p: Persona) => void
   onOpenNote: (id: string) => void
@@ -266,7 +273,7 @@ export default function Workspace({
       <LineageStrip versions={versions} />
       <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex' }}>
         <div ref={canvasRef} style={canvasStyle}>
-        <PageFrame ref={frameRef} pal={pal} url={brand.url} loading={critiquing}>
+        <PageFrame ref={frameRef} pal={pal} url={brand.url} loading={critiquing || personaSwitching}>
           {brand.key === 'ember' && <EmberLayout brand={brand} view={view} register={register} />}
           {brand.key === 'cadence' && <CadenceLayout brand={brand} view={view} register={register} />}
           {brand.key === 'maren' && <MarenLayout brand={brand} view={view} register={register} />}
@@ -289,6 +296,7 @@ export default function Workspace({
             currentValue={page[openDotData.field]}
             preview={preview}
             persona={persona}
+            refreshing={refreshing}
             onClose={onCloseNote}
             onPreviewOption={onPreviewOption}
             onAccept={(opt) => onAcceptOption(openDotData, opt)}
@@ -296,11 +304,12 @@ export default function Workspace({
         )}
         </div>
 
-        {/* "Critiquing..." floats over the dimmed design while the round loads. */}
-        {critiquing && (
+        {/* Loading card floats over the dimmed design on the first round and when
+            switching perspective (which reloads the comments from scratch). */}
+        {(critiquing || personaSwitching) && (
           <div className="ate-fade" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#fff', border: '1px solid #e6e6ec', borderRadius: 999, padding: '12px 22px', boxShadow: '0 18px 50px -16px rgba(20,16,30,.3)', fontSize: 14, fontWeight: 600, color: '#4f46e5', animation: 'ate-pop .32s cubic-bezier(.2,.9,.3,1.3) both' }}>
-              <CritiquingLabel />
+              {personaSwitching ? <span>{clean(`Preparing crit as a ${persona.role.toLowerCase()}`)}</span> : <CritiquingLabel />}
               <span style={{ display: 'inline-flex', gap: 3 }}>
                 {[0, 0.16, 0.32].map((d) => (
                   <span key={d} style={{ width: 5, height: 5, borderRadius: '50%', background: '#4f46e5', animation: 'ate-blink 1.2s ease-in-out infinite', animationDelay: `${d}s` }} />
@@ -311,7 +320,7 @@ export default function Workspace({
         )}
       </div>
 
-      <CommentsRail dots={railDots} openDot={openDot} resolvedDots={resolvedDots} showComments={showComments} critiquing={critiquing} persona={persona} onSetPersona={onSetPersona} onToggleComments={toggleComments} onRowClick={handleOpen} />
+      <CommentsRail dots={railDots} openDot={openDot} resolvedDots={resolvedDots} showComments={showComments} critiquing={critiquing} refreshing={refreshing} liveState={liveState} persona={persona} onSetPersona={onSetPersona} onToggleComments={toggleComments} onRowClick={handleOpen} />
     </div>
   )
 }
