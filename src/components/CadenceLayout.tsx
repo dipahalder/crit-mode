@@ -8,8 +8,23 @@ import { clean } from '../utils/clean'
 
 const HERO_GRADIENT = 'radial-gradient(135% 130% at 8% 4%,#7b78ff 0%,#635bff 30%,#3b2f8f 70%,#1b1540 100%)'
 
+// The LLM picks free-form hero-image values (e.g. "timeline-spacious",
+// "timeline-detail", "weekly recap"); classify any of them into one of the mock
+// variants we can draw so the product preview genuinely changes per option.
+type MockVariant = 'review' | 'focus' | 'spacious' | 'motion' | 'timeline'
+function mockVariant(heroImg: string): MockVariant {
+  const s = heroImg.toLowerCase()
+  if (/(review|recap|summary|report|stat|progress|insight|analytic|week in|chart|graph)/.test(s)) return 'review'
+  if (/(focus|deep|single|one task|one block|now|zen|distraction|detail|close|crop|zoom)/.test(s)) return 'focus'
+  if (/(spacious|airy|calm|ease|whitespace|generous|breath|relax|sparse|minimal|light|clean)/.test(s)) return 'spacious'
+  if (/(motion|settl|animat|flow|transition|slide|moving)/.test(s)) return 'motion'
+  return 'timeline'
+}
+
 export default function CadenceLayout({ brand: b, view, register }: { brand: Brand; view: Page; register: RegisterTarget }) {
   const concept = view.concept
+  const heroLayout = view.heroLayout
+  const variant = mockVariant(view.heroImg)
 
   const copy = (
     <>
@@ -18,13 +33,13 @@ export default function CadenceLayout({ brand: b, view, register }: { brand: Bra
       <p ref={register('subhead')} key={clean(view.subhead)} className="ate-fade" style={{ fontSize: 16, lineHeight: 1.6, color: 'rgba(255,255,255,.84)', margin: '0 0 26px', maxWidth: 400 }}>{clean(view.subhead)}</p>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <span ref={register('cta')} key={clean(view.cta)} className="ate-fade" style={{ fontSize: 14, fontWeight: 700, color: '#3b2f8f', background: '#fff', padding: '13px 22px', borderRadius: 10 }}>{clean(view.cta)}</span>
-        <span style={{ fontSize: 14, fontWeight: 600, color: '#fff', display: 'flex', alignItems: 'center', gap: 7 }}>{clean(b.ctaSecondary)} <span style={{ opacity: 0.7 }}>→</span></span>
+        <span ref={register('heroLayout')} style={{ fontSize: 14, fontWeight: 600, color: '#fff', display: 'flex', alignItems: 'center', gap: 7 }}>{clean(b.ctaSecondary)} <span style={{ opacity: 0.7 }}>→</span></span>
       </div>
     </>
   )
 
-  // The product mock actually reflects the chosen view (timeline / focus / review).
-  const mockTitle = view.heroImg === 'focus mode' ? 'In focus' : view.heroImg === 'weekly review' ? 'Last week' : 'This week'
+  // The product mock actually reflects the chosen view.
+  const mockTitle = variant === 'focus' ? 'In focus' : variant === 'review' ? 'Last week' : variant === 'spacious' ? 'A lighter week' : 'This week'
 
   const timelineBody = (
     <div style={{ display: 'flex' }}>
@@ -95,7 +110,44 @@ export default function CadenceLayout({ brand: b, view, register }: { brand: Bra
     </div>
   )
 
-  const mockBody = view.heroImg === 'focus mode' ? focusBody : view.heroImg === 'weekly review' ? reviewBody : timelineBody
+  // Spacious: fewer blocks, generous whitespace, one calm day.
+  const spaciousBody = (
+    <div style={{ padding: '22px 18px 26px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {[
+        { time: '9:00', bg: '#635bff', color: '#fff', label: 'Deep work' },
+        { time: '13:00', bg: '#eef0f6', color: '#56607a', label: 'Review' },
+        { time: '16:00', bg: '#c7f7ec', color: '#0d6b57', label: 'Walk' },
+      ].map((row) => (
+        <div key={row.time} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 10, color: '#9aa2b6', width: 34 }}>{row.time}</span>
+          <div style={{ flex: 1, height: 30, borderRadius: 9, background: row.bg, display: 'flex', alignItems: 'center', padding: '0 13px' }}>
+            <span style={{ fontSize: 11, color: row.color, fontWeight: 600 }}>{row.label}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+
+  // Motion: tasks staggering into place, a settling cascade.
+  const motionBody = (
+    <div style={{ padding: '14px 14px 18px', display: 'flex', flexDirection: 'column', gap: 9 }}>
+      {[
+        { flex: 1, bg: '#635bff', color: '#fff', label: 'Deep work · Auth flow', indent: 0, op: 1 },
+        { flex: 0.82, bg: '#d9dcfb', color: '#3b2f8f', label: 'Standup', indent: 16, op: 0.92 },
+        { flex: 0.66, bg: '#eef0f6', color: '#56607a', label: 'Review PRs', indent: 32, op: 0.74 },
+        { flex: 0.5, bg: '#eef0f6', color: '#8a93a8', label: 'Walk', indent: 48, op: 0.5 },
+      ].map((row, i) => (
+        <div key={i} style={{ display: 'flex', justifyContent: 'flex-end', paddingLeft: row.indent }}>
+          <div style={{ flex: row.flex, height: 22, borderRadius: 6, background: row.bg, opacity: row.op, display: 'flex', alignItems: 'center', padding: '0 9px' }}>
+            <span style={{ fontSize: 9.5, color: row.color, fontWeight: 600, whiteSpace: 'nowrap' }}>{row.label}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+
+  const mockBody =
+    variant === 'focus' ? focusBody : variant === 'review' ? reviewBody : variant === 'spacious' ? spaciousBody : variant === 'motion' ? motionBody : timelineBody
 
   const mockBlock = (
     <div ref={register('heroImg')} key={clean(view.heroImg)} className="ate-fade" style={{ position: 'relative', background: '#fff', borderRadius: 14, boxShadow: '0 30px 70px -20px rgba(10,8,40,.6)', overflow: 'hidden' }}>
@@ -162,14 +214,14 @@ export default function CadenceLayout({ brand: b, view, register }: { brand: Bra
           </div>
         </div>
 
-        {concept === 'ritual-led' ? (
+        {heroLayout === 'centered' ? (
           <div style={{ padding: '40px 44px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
             {copy}
             <div style={{ width: '100%', maxWidth: 380, marginTop: 28 }}>{mockBlock}</div>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1.02fr .98fr', gap: 30, alignItems: 'center', padding: '46px 44px 14px' }}>
-            {concept === 'origin-led' ? (
+            {heroLayout === 'imageFirst' ? (
               <>
                 {mockBlock}
                 <div>{copy}</div>

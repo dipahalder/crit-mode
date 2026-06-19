@@ -10,11 +10,17 @@ export type BrandKey = 'ember' | 'cadence' | 'maren'
 export type PaletteKey = 'warmEarthy' | 'bold' | 'cream' | 'cadence' | 'maren'
 
 // The editable fields of a page. Every dot patches exactly one of these.
-// 'concept' is the structural field (M12): it reflows the layout, not just copy.
-export type FieldKey = 'headline' | 'subhead' | 'cta' | 'heroImg' | 'social' | 'palette' | 'concept'
+// 'concept' and 'heroLayout' are the structural fields (M12): they reflow the
+// layout, not just copy.
+export type FieldKey = 'headline' | 'subhead' | 'cta' | 'heroImg' | 'social' | 'palette' | 'concept' | 'heroLayout'
 
-// The page-level structural concept (M12). Drives hero treatment + section order.
+// The page-level structural concept (M12). Drives the content framing + which
+// body sections lead.
 export type Concept = 'product-led' | 'ritual-led' | 'origin-led'
+
+// The hero geometry (M12), a second structural axis independent of `concept`:
+// a side-by-side split, a centered stack, or image/mock first.
+export type HeroLayout = 'split' | 'centered' | 'imageFirst'
 
 export type DotKind = 'text' | 'palette' | 'concept'
 
@@ -40,7 +46,7 @@ export type RegisterTarget = (field: FieldKey) => (el: HTMLElement | null) => vo
 export interface CritiqueResponse {
   critique: string
   prompt: string
-  options: Array<{ value: string; vibe: string; tag: string; swatch?: string[] }>
+  options: Array<{ value: string; vibe: string; tag: string; swatch?: string[]; palette?: Palette }>
 }
 
 // A palette is a set of design tokens applied as CSS custom properties (M3).
@@ -67,6 +73,10 @@ export interface Page {
   social: string
   palette: PaletteKey
   concept: Concept
+  heroLayout: HeroLayout
+  // A dynamic, LLM-suggested palette overrides the keyed palette when set (M:
+  // dynamic moods). undefined => use palettes[palette].
+  paletteTokens?: Palette
 }
 
 // option : { id, value, vibe, tag, swatch? }  // swatch only for palette options
@@ -102,6 +112,7 @@ export interface Dot {
 export interface Version {
   n: number
   palette: PaletteKey
+  paletteTokens?: Palette
   headline: string
   note: string
 }

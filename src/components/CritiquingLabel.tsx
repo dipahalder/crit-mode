@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 // Cycles through phrases while critiques load, fading between them.
-const PHRASES = ['Analyzing the design', 'Looking for insights', 'Preparing critiques']
+const PHRASES = ['Analyzing', 'Searching for insights', 'Gathering thoughts', 'Preparing feedback']
 
 export default function CritiquingLabel() {
   const [i, setI] = useState(0)

@@ -28,6 +28,7 @@ const imageStyle: CSSProperties = {
 
 export default function EmberLayout({ brand: b, view, register }: { brand: Brand; view: Page; register: RegisterTarget }) {
   const concept = view.concept
+  const heroLayout = view.heroLayout
 
   // Hero copy + image as single instances (each registered element appears once,
   // so pins stay anchored regardless of which hero treatment renders).
@@ -38,7 +39,7 @@ export default function EmberLayout({ brand: b, view, register }: { brand: Brand
       <p ref={register('subhead')} key={clean(view.subhead)} className="ate-fade" style={subheadStyle}>{clean(view.subhead)}</p>
       <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
         <span ref={register('cta')} key={clean(view.cta)} className="ate-fade" style={ctaStyle}>{clean(view.cta)}</span>
-        <span style={ctaSecondaryStyle}>{clean(b.ctaSecondary)}</span>
+        <span ref={register('heroLayout')} style={ctaSecondaryStyle}>{clean(b.ctaSecondary)}</span>
       </div>
     </>
   )
@@ -52,17 +53,17 @@ export default function EmberLayout({ brand: b, view, register }: { brand: Brand
     </div>
   )
 
-  // Hero treatment by concept: ritual-led is a centered, image-led hero; the
-  // others are the split hero, with origin-led mirrored (image first).
+  // Hero geometry by heroLayout (M12, independent of concept): centered stacks
+  // copy over a full-width image; split is side-by-side; imageFirst mirrors it.
   const hero =
-    concept === 'ritual-led' ? (
+    heroLayout === 'centered' ? (
       <div style={{ borderTop: '1px solid var(--line)' }}>
         <div style={centeredCopyStyle}>{copy}</div>
         {imageBlock}
       </div>
     ) : (
       <div style={{ display: 'grid', gridTemplateColumns: '1.06fr .94fr', gap: 0, alignItems: 'stretch', borderTop: '1px solid var(--line)' }}>
-        {concept === 'origin-led' ? (
+        {heroLayout === 'imageFirst' ? (
           <>
             {imageBlock}
             <div style={splitCopyStyle}>{copy}</div>

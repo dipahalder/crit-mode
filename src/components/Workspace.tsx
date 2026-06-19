@@ -272,11 +272,14 @@ export default function Workspace({
           {brand.key === 'maren' && <MarenLayout brand={brand} view={view} register={register} />}
         </PageFrame>
 
-        {/* Pin overlay (canvas-content coords; scrolls with the page). */}
+        {/* Pin overlay (canvas-content coords; scrolls with the page). Resolved
+            dots drop their pin — the design stays clean once a note is done. */}
         {showComments &&
-          pinPositions.map((p) => (
-            <button key={p.id} type="button" aria-label="Open critique" onClick={() => handleOpen(p.id)} style={pinStyle(p.x, p.y, openDot === p.id)} />
-          ))}
+          pinPositions
+            .filter((p) => !resolvedDots[p.id])
+            .map((p) => (
+              <button key={p.id} type="button" aria-label="Open critique" onClick={() => handleOpen(p.id)} style={pinStyle(p.x, p.y, openDot === p.id)} />
+            ))}
 
         {showComments && pop && openDotData && (
           <Popover
@@ -295,8 +298,8 @@ export default function Workspace({
 
         {/* "Critiquing..." floats over the dimmed design while the round loads. */}
         {critiquing && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#fff', border: '1px solid #e6e6ec', borderRadius: 999, padding: '12px 22px', boxShadow: '0 18px 50px -16px rgba(20,16,30,.3)', fontSize: 14, fontWeight: 600, color: '#4f46e5' }}>
+          <div className="ate-fade" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#fff', border: '1px solid #e6e6ec', borderRadius: 999, padding: '12px 22px', boxShadow: '0 18px 50px -16px rgba(20,16,30,.3)', fontSize: 14, fontWeight: 600, color: '#4f46e5', animation: 'ate-pop .32s cubic-bezier(.2,.9,.3,1.3) both' }}>
               <CritiquingLabel />
               <span style={{ display: 'inline-flex', gap: 3 }}>
                 {[0, 0.16, 0.32].map((d) => (

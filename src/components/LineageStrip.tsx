@@ -36,7 +36,7 @@ export default function LineageStrip({ versions }: { versions: Version[] }) {
       </div>
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0 16px' }}>
         {versions.map((v, i) => {
-          const p = palettes[v.palette]
+          const p = v.paletteTokens ?? palettes[v.palette]
           const current = i === versions.length - 1
           return (
             <div key={v.n} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: '0 0 auto' }}>

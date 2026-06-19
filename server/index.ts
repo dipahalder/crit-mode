@@ -97,6 +97,69 @@ function validate(parsed: unknown, region: FieldKey): CritiqueResponse {
   }
 }
 
+// --- Dynamic palette derivation (LLM suggests a few colors; we build a full,
+// valid token set so any mood recolors the page correctly). -----------------
+
+function hex(v: unknown): string | null {
+  if (typeof v !== 'string') return null
+  const s = v.trim()
+  if (/^#[0-9a-fA-F]{6}$/.test(s)) return s.toLowerCase()
+  if (/^#[0-9a-fA-F]{3}$/.test(s)) return ('#' + s.slice(1).split('').map((c) => c + c).join('')).toLowerCase()
+  return null
+}
+function toRgb(h: string): [number, number, number] {
+  return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]
+}
+function toHex(r: number, g: number, b: number): string {
+  return '#' + [r, g, b].map((x) => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0')).join('')
+}
+function mix(a: string, b: string, t: number): string {
+  const [ar, ag, ab] = toRgb(a)
+  const [br, bg, bb] = toRgb(b)
+  return toHex(ar + (br - ar) * t, ag + (bg - ag) * t, ab + (bb - ab) * t)
+}
+function luminance(h: string): number {
+  const [r, g, b] = toRgb(h).map((x) => x / 255)
+  const f = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4))
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
+}
+// Build a full palette token set from the model's 4 colors + display family.
+function derivePalette(bg: string, ink: string, accent: string, hero: string, serif: boolean) {
+  return {
+    bg,
+    surface: mix(bg, '#ffffff', 0.5),
+    ink,
+    sub: mix(ink, bg, 0.42),
+    accent,
+    accentInk: luminance(accent) > 0.5 ? ink : '#ffffff',
+    line: mix(ink, bg, 0.82),
+    hero,
+    display: serif ? '"Newsreader", Georgia, serif' : '"Manrope", sans-serif',
+    dispWeight: serif ? 500 : 800,
+    dispLs: serif ? '-0.4px' : '-1.4px',
+  }
+}
+// Parse the model's palette suggestions; fall back to the canonical three.
+function cleanPaletteOptions(raw: unknown) {
+  const out: Array<{ value: string; vibe: string; tag: string; swatch: string[]; palette: ReturnType<typeof derivePalette> }> = []
+  if (Array.isArray(raw)) {
+    for (const r of raw) {
+      const o = r as Record<string, unknown>
+      const name = typeof o.value === 'string' && o.value.trim() ? o.value.trim() : typeof o.vibe === 'string' ? o.vibe.trim() : ''
+      const bg = hex(o.bg)
+      const ink = hex(o.ink)
+      const accent = hex(o.accent)
+      const heroC = hex(o.hero)
+      if (!name || !bg || !ink || !accent || !heroC) continue
+      out.push({ value: clean(name), vibe: clean(name), tag: clean(name), swatch: [accent, heroC, ink], palette: derivePalette(bg, ink, accent, heroC, o.display === 'serif') })
+      if (out.length >= 3) break
+    }
+  }
+  if (out.length >= 2) return out
+  // Not enough valid suggestions: keep the canonical themes (client uses static).
+  return paletteOptions.map((o) => ({ value: o.value, vibe: clean(o.vibe), tag: clean(o.tag), swatch: o.swatch ?? [] }))
+}
+
 async function generate(brand: BrandKey, region: FieldKey, pageModel: Record<string, unknown>, persona?: Persona): Promise<CritiqueResponse> {
   const b = brands[brand]
   const dot = b.dots.find((d) => d.field === region)!
@@ -212,8 +275,9 @@ ${inv.map((it) => `- ${it.id} [${it.kind}] (${it.section}): ${JSON.stringify(it.
 Full current page model: ${JSON.stringify(pageModel)}.
 
 ${selection}
-For each chosen region write one critique and 2 to 3 taste-different options. For the "palette" region, each option value must be exactly one of: ${PALETTE_VALUES.join(', ')}.
-Return JSON only: {"critiques":[{"targetId":string,"critique":string,"prompt":string,"options":[{"value":string,"vibe":string,"tag":string}]}]}.`
+For each chosen region write one critique and 2 to 3 taste-different options, shaped {"value": string, "vibe": string}.
+For the "palette" region, instead suggest 2 to 3 distinct color moods that genuinely fit THIS brand and product (for botanical skincare lean greens and naturals; for a coffee brand warm earth tones; for a productivity tool cooler or bolder tech tones). Each palette option is {"value": short mood name, "bg": hex, "ink": hex, "accent": hex, "hero": hex, "display": "serif" or "sans"} using real #rrggbb colors. bg is the page background, ink the body text, accent the buttons and highlights, hero the image tint.
+Return JSON only: {"critiques":[{"targetId":string,"critique":string,"prompt":string,"options":[ ... ]}]}.`
 
   const message = await client!.messages.create({ model: MODEL, max_tokens: 2048, system, messages: [{ role: 'user', content: user }] })
   const text = message.content.filter((blk): blk is Anthropic.TextBlock => blk.type === 'text').map((blk) => blk.text).join('')
@@ -221,7 +285,7 @@ Return JSON only: {"critiques":[{"targetId":string,"critique":string,"prompt":st
   if (!parsed || !Array.isArray(parsed.critiques)) throw new Error('no critiques array')
 
   const seen = new Set<string>()
-  const out: Array<{ targetId: string; critique: string; prompt: string; options: ReturnType<typeof cleanOptions> }> = []
+  const out: Array<{ targetId: string; critique: string; prompt: string; options: unknown }> = []
   for (const raw of parsed.critiques) {
     const c = raw as Record<string, unknown>
     const targetId = c.targetId
@@ -231,7 +295,7 @@ Return JSON only: {"critiques":[{"targetId":string,"critique":string,"prompt":st
     if (typeof c.prompt !== 'string' || !c.prompt.trim()) continue
     let options
     try {
-      options = cleanOptions(c.options, targetId as FieldKey)
+      options = targetId === 'palette' ? cleanPaletteOptions(c.options) : cleanOptions(c.options, targetId as FieldKey)
     } catch {
       continue
     }

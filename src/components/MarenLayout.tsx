@@ -10,9 +10,10 @@ import { clean } from '../utils/clean'
 export default function MarenLayout({ brand: b, view, register }: { brand: Brand; view: Page; register: RegisterTarget }) {
   const nameCaps = b.nameCaps ?? b.name
   const concept = view.concept
+  const heroLayout = view.heroLayout
 
   const heroCopy = (
-    <div style={{ padding: '54px 48px 44px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+    <div ref={register('heroLayout')} style={{ padding: '54px 48px 44px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
       <div ref={register('palette')} style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '2px', color: 'var(--accent)', marginBottom: 22 }}>{clean(b.eyebrow)}</div>
       <h1 ref={register('headline')} key={clean(view.headline)} className="ate-fade" style={{ fontFamily: 'var(--display)', fontWeight: 'var(--dispWeight)' as CSSProperties['fontWeight'], fontSize: 58, lineHeight: 1.04, letterSpacing: 'var(--dispLs)', margin: '0 0 22px', maxWidth: 680 }}>{clean(view.headline)}</h1>
       <p ref={register('subhead')} key={clean(view.subhead)} className="ate-fade" style={{ fontSize: 16.5, lineHeight: 1.62, color: 'var(--sub)', margin: '0 0 30px', maxWidth: 480 }}>{clean(view.subhead)}</p>
@@ -28,8 +29,8 @@ export default function MarenLayout({ brand: b, view, register }: { brand: Brand
       style={{
         position: 'relative',
         height: 330,
-        margin: concept === 'origin-led' ? '0 0 8px' : '0 48px 8px',
-        borderRadius: concept === 'origin-led' ? 0 : 16,
+        margin: heroLayout === 'imageFirst' ? '0 0 8px' : '0 48px 8px',
+        borderRadius: heroLayout === 'imageFirst' ? 0 : 16,
         overflow: 'hidden',
         background: 'var(--hero)',
         backgroundImage: 'repeating-linear-gradient(135deg,rgba(0,0,0,.04) 0 14px,transparent 14px 28px)',
@@ -114,8 +115,8 @@ export default function MarenLayout({ brand: b, view, register }: { brand: Brand
         </div>
       </div>
 
-      {/* Hero: image-first for the proof-led story, else copy-first */}
-      {concept === 'origin-led' ? (
+      {/* Hero geometry (M12): image-first edge-to-edge, else copy-first inset */}
+      {heroLayout === 'imageFirst' ? (
         <>
           {heroImage}
           {heroCopy}

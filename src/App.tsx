@@ -2,14 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { brands, palettes } from './data/brands'
 import { PERSONA_MAP } from './data/personas'
-import type { BrandKey, CritiqueResponse, Dot, FieldKey, Option, Page, PaletteKey, Persona, Preview, Screen, Version } from './types'
+import type { BrandKey, CritiqueResponse, Dot, FieldKey, Option, Page, Persona, Preview, Screen, Version } from './types'
 import { clean } from './utils/clean'
 import TopBar from './components/TopBar'
 import StartScreen from './components/StartScreen'
 import Workspace from './components/Workspace'
 
 // Inventory kinds for the editable fields (M14), sent to the LLM as context.
-const INV_KIND: Record<FieldKey, string> = { headline: 'heading', subhead: 'body', cta: 'cta', heroImg: 'image', social: 'social', palette: 'section', concept: 'section' }
+const INV_KIND: Record<FieldKey, string> = { headline: 'heading', subhead: 'body', cta: 'cta', heroImg: 'image', social: 'social', palette: 'section', concept: 'section', heroLayout: 'section' }
 
 // One round of LLM-chosen critiques: the chosen target fields + their critiques.
 // `persona` is who the round was generated for; a live critique is only used while
@@ -28,7 +28,17 @@ function personaCopy(d: Dot, persona: Persona): { critique: string; prompt: stri
 // directions); palette/concept keep their static options.
 function mergeDot(d: Dot, live: CritiqueResponse | undefined, persona: Persona): Dot {
   if (live) {
-    if (d.kind === 'palette' || d.kind === 'concept') return { ...d, critique: live.critique, prompt: live.prompt }
+    // Concept keeps its curated multi-field options; only the voice changes.
+    if (d.kind === 'concept') return { ...d, critique: live.critique, prompt: live.prompt }
+    // Palette: use the LLM's dynamic moods when they carry derived tokens, each
+    // as a paletteTokens patch; otherwise keep the static canonical options.
+    if (d.kind === 'palette') {
+      const dyn = live.options
+        .filter((o) => o.swatch && o.palette)
+        .slice(0, 3)
+        .map((o, i) => ({ id: `llm-${i}`, value: o.value, vibe: o.vibe, tag: o.tag, swatch: o.swatch!, patch: { paletteTokens: o.palette! } as Partial<Page> }))
+      return dyn.length >= 2 ? { ...d, critique: live.critique, prompt: live.prompt, options: dyn } : { ...d, critique: live.critique, prompt: live.prompt }
+    }
     return {
       ...d,
       critique: live.critique,
@@ -56,7 +66,7 @@ const appShell: CSSProperties = {
 export default function App() {
   const [screen, setScreen] = useState<Screen>('start')
   const [activeBrand, setActiveBrand] = useState<BrandKey>('ember')
-  const [page, setPage] = useState<Page>(() => ({ ...brands.ember.defaults, palette: brands.ember.palKey, concept: 'product-led' }))
+  const [page, setPage] = useState<Page>(() => ({ ...brands.ember.defaults, palette: brands.ember.palKey, concept: 'product-led', heroLayout: 'split' }))
   const [openDot, setOpenDot] = useState<string | null>(null)
   const [preview, setPreview] = useState<Preview | null>(null)
   const [resolvedDots, setResolvedDots] = useState<Record<string, string>>({})
@@ -77,7 +87,9 @@ export default function App() {
   function chooseBrand(key: BrandKey) {
     const br = brands[key]
     setActiveBrand(key)
-    setPage({ ...br.defaults, palette: br.palKey, concept: 'product-led' })
+    // Maren is an editorial, centered layout (no side-by-side split), so its
+    // hero starts centered; the other brands start on the split hero.
+    setPage({ ...br.defaults, palette: br.palKey, concept: 'product-led', heroLayout: key === 'maren' ? 'centered' : 'split' })
     setResolvedDots({})
     setVersions([{ n: 1, palette: br.palKey, headline: br.defaults.headline, note: 'Starting point' }])
     setOpenDot(null)
@@ -111,14 +123,15 @@ export default function App() {
   // accept commits an option: write page[field], mark the dot resolved, push a
   // version, and clear the open note + preview. (CLAUDE.md accept transition.)
   function accept(dot: Dot, opt: Option) {
-    // A page-level option carries a coordinated multi-field patch (M12); an
+    // A page-level / dynamic-palette option carries a multi-field patch; an
     // element-level option patches its single field by value.
-    const newPage: Page = (opt.patch ? { ...page, ...opt.patch } : { ...page, [dot.field]: opt.value }) as Page
-    const palKey: PaletteKey = dot.field === 'palette' ? (opt.value as PaletteKey) : newPage.palette
-    const chosen = dot.field === 'palette' ? `${opt.vibe} palette` : dot.field === 'concept' ? `${opt.vibe} layout` : opt.value
+    let newPage: Page = (opt.patch ? { ...page, ...opt.patch } : { ...page, [dot.field]: opt.value }) as Page
+    // Choosing a static (keyed) palette clears any dynamic tokens so it applies.
+    if (dot.field === 'palette' && !opt.patch) newPage = { ...newPage, paletteTokens: undefined }
+    const chosen = dot.field === 'palette' ? `${opt.vibe} palette` : dot.kind === 'concept' ? `${opt.vibe} layout` : opt.value
     setPage(newPage)
     setResolvedDots((r) => ({ ...r, [dot.id]: chosen }))
-    setVersions((v) => [...v, { n: v.length + 1, palette: palKey, headline: newPage.headline, note: dot.region }])
+    setVersions((v) => [...v, { n: v.length + 1, palette: newPage.palette, paletteTokens: newPage.paletteTokens, headline: newPage.headline, note: dot.region }])
     setOpenDot(null)
     setPreview(null)
   }
@@ -131,7 +144,8 @@ export default function App() {
   // to the static six. Debounced + abortable + generation-tagged.
   useEffect(() => {
     if (screen !== 'workspace') return
-    const editable = brands[activeBrand].dots.filter((d) => d.field !== 'concept')
+    // Structural dots (concept, heroLayout) are curated, never LLM-chosen.
+    const editable = brands[activeBrand].dots.filter((d) => d.kind !== 'concept')
     if (editable.length === 0) return
     const inventory = editable.map((d) => ({ id: d.field, kind: INV_KIND[d.field], section: d.region, text: String(page[d.field] ?? '') }))
     const gen = ++genRef.current
@@ -187,8 +201,11 @@ export default function App() {
   // Derived render model (guardrail 1): during a preview, render from view, not
   // the committed page, so the try-on is visible without committing. A page-level
   // preview applies its whole patch (M12).
-  const view: Page = preview ? ({ ...page, ...(preview.patch ?? { [preview.field]: preview.value }) } as Page) : page
-  const pal = palettes[view.palette]
+  const view: Page = preview
+    ? ({ ...page, ...(preview.patch ?? { [preview.field]: preview.value }), ...(preview.field === 'palette' && !preview.patch ? { paletteTokens: undefined } : {}) } as Page)
+    : page
+  // A dynamic (LLM) palette overrides the keyed palette when present.
+  const pal = view.paletteTokens ?? palettes[view.palette]
 
   return (
     <div style={appShell}>

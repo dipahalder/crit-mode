@@ -152,8 +152,8 @@ export default function CommentsRail({
                 style={{
                   ...rowBase,
                   borderLeft: active ? '3px solid #4f46e5' : '3px solid transparent',
-                  background: active ? '#f6f6ff' : '#fff',
-                  opacity: resolved && !active ? 0.78 : 1,
+                  background: active ? '#f6f6ff' : resolved ? '#fafafb' : '#fff',
+                  opacity: resolved && !active ? 0.55 : 1,
                 }}
               >
                 {/* Attribution: a small colored dot + role (a viewpoint, not a person). */}
@@ -162,7 +162,7 @@ export default function CommentsRail({
                   <span style={{ fontSize: 12.5, fontWeight: 500, color: '#27272a' }}>{clean(persona.role)}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 500, color: '#27272a', whiteSpace: 'nowrap' }}>{clean(d.region)}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#18181b', letterSpacing: '-0.1px', whiteSpace: 'nowrap' }}>{clean(d.region)}</span>
                   <span style={{ ...statusBase, color: resolved ? '#3f8f5f' : '#a1a1aa', border: `0.5px solid ${resolved ? '#bfe0cc' : '#e4e4e9'}` }}>{resolved ? 'Resolved' : 'Open'}</span>
                 </div>
                 <div style={clamp2}>{clean(d.critique)}</div>

@@ -10,6 +10,7 @@
 //      guardrail 4 in CLAUDE.md, so the source of truth stays unmodified here.
 
 import type { Brand, BrandKey, Dot, Option, Palette, PaletteKey } from '../types'
+import { derivePalette } from '../utils/palette'
 
 export const palettes: Record<PaletteKey, Palette> = {
   warmEarthy: { bg: '#f3e9dc', surface: '#fbf6ee', ink: '#2a1c12', sub: '#6f5743', accent: '#a9521f', accentInk: '#fbf6ee', line: '#e6d7c4', hero: '#e7d2b8', display: '"Newsreader", Georgia, serif', dispWeight: 500, dispLs: '-0.6px' },
@@ -19,16 +20,57 @@ export const palettes: Record<PaletteKey, Palette> = {
   maren: { bg: '#f1efe8', surface: '#fbfaf5', ink: '#27261f', sub: '#6f6d62', accent: '#46503a', accentInk: '#fbfaf5', line: '#e4e0d5', hero: '#e3e6d8', display: '"Newsreader", Georgia, serif', dispWeight: 400, dispLs: '-0.4px' },
 }
 
+// Generic three-theme set (the prototype's). Kept as the server's last-resort
+// fallback; the brands themselves use the brand-specific moods below.
 export const paletteOptions: Option[] = [
   { id: 'warmEarthy', value: 'warmEarthy', vibe: 'Warm earthy', tag: 'Warm, earthy palette', swatch: ['#a9521f', '#e7d2b8', '#2a1c12'] },
   { id: 'bold', value: 'bold', vibe: 'Bold high-contrast', tag: 'Bold high-contrast', swatch: ['#ea5a16', '#1b1b1f', '#ffffff'] },
   { id: 'cream', value: 'cream', vibe: 'Minimal cream', tag: 'Minimal, restrained color', swatch: ['#3f3a33', '#efeae1', '#1f1b16'] },
 ]
 
-// The palette dot is identical across brands except for its critique, mirroring
-// mkPaletteDot() in the prototype. n:2, region 'Color & mood', field 'palette'.
-function paletteDot(critique: string, byPersona?: Dot['byPersona']): Dot {
-  return { id: 'palette', n: 2, kind: 'palette', region: 'Color & mood', field: 'palette', critique, prompt: 'Recolor the whole page:', options: paletteOptions, ...(byPersona ? { byPersona } : {}) }
+// A brand-specific color mood: full token set derived from a few base colors,
+// applied as a paletteTokens patch (same mechanism as the LLM dynamic moods).
+// swatch previews accent / hero / ink.
+function mood(id: string, vibe: string, tag: string, bg: string, ink: string, accent: string, hero: string, serif: boolean): Option {
+  const tokens = derivePalette(bg, ink, accent, hero, serif)
+  return { id, value: id, vibe, tag, swatch: [accent, hero, ink], patch: { paletteTokens: tokens } }
+}
+
+// Brand-appropriate moods so the palette options always read as THIS brand,
+// even offline (guardrail 3). The LLM can still override these live.
+const emberMoods: Option[] = [
+  mood('warm', 'Warm earthy', 'Warm, earthy roast', '#f3e9dc', '#2a1c12', '#a9521f', '#e7d2b8', true),
+  mood('roast', 'Dark roast', 'Deep, roasted, moody', '#211915', '#f3e7d8', '#d2873f', '#3a2a20', true),
+  mood('cream', 'Soft cream', 'Pale, restrained, calm', '#faf7f1', '#1f1b16', '#6b4a2f', '#efeae1', true),
+]
+const cadenceMoods: Option[] = [
+  mood('indigo', 'Indigo tech', 'Crisp, indigo, modern', '#ffffff', '#0a2540', '#635bff', '#0a2540', false),
+  mood('night', 'Bold dark', 'High-contrast dark mode', '#0d0d12', '#f4f4f8', '#6d6bff', '#1b1b24', false),
+  mood('slate', 'Calm slate', 'Soft, slate, focused', '#f6f7fb', '#1f2937', '#2563eb', '#dbe3f4', false),
+]
+const marenMoods: Option[] = [
+  mood('botanical', 'Botanical green', 'Earthy, green, natural', '#f1efe8', '#27261f', '#46503a', '#d8e0cf', true),
+  mood('sage', 'Sage & clay', 'Soft sage, herbal', '#eef0e8', '#2b2f24', '#6b7d52', '#dce3cf', true),
+  mood('blush', 'Warm blush', 'Quiet, warm, skin-toned', '#f6efe9', '#2e2622', '#a86b5a', '#ecdbd0', true),
+]
+
+// The palette dot: n:2, region 'Color & mood', field 'palette'. Options are the
+// brand's own moods so the choices reflect the brand by default.
+function paletteDot(critique: string, options: Option[], byPersona?: Dot['byPersona']): Dot {
+  return { id: 'palette', n: 2, kind: 'palette', region: 'Color & mood', field: 'palette', critique, prompt: 'Recolor the whole page:', options, ...(byPersona ? { byPersona } : {}) }
+}
+
+// The hero-layout dot (M12): a second structural reorganizer, independent of the
+// page concept. Each option patches `heroLayout` (hero geometry) only. Default
+// options are the three geometries; brands with fewer meaningful arrangements
+// (Maren) pass their own subset.
+const heroLayoutOptions: Option[] = [
+  { id: 'split', value: 'split', vibe: 'Side-by-side', tag: 'Split hero', patch: { heroLayout: 'split' } },
+  { id: 'centered', value: 'centered', vibe: 'Centered', tag: 'Centered hero', patch: { heroLayout: 'centered' } },
+  { id: 'imageFirst', value: 'imageFirst', vibe: 'Image-first', tag: 'Image-first hero', patch: { heroLayout: 'imageFirst' } },
+]
+function heroLayoutDot(critique: string, byPersona?: Dot['byPersona'], options: Option[] = heroLayoutOptions): Dot {
+  return { id: 'heroLayout', n: 8, kind: 'concept', region: 'Hero layout', field: 'heroLayout', critique, prompt: 'Recompose the hero:', options, ...(byPersona ? { byPersona } : {}) }
 }
 
 const ember: Brand = {
@@ -111,7 +153,7 @@ const ember: Brand = {
         { id: 'macro', value: 'Macro of a single roasted bean', vibe: 'Craft · macro', tag: 'Product macro imagery' },
       ],
     },
-    paletteDot('The mood reads safe and roastery-default. What feeling should the page lead with?', {
+    paletteDot('The mood reads safe and roastery-default. What feeling should the page lead with?', emberMoods, {
       cd: { critique: 'The palette is the expected roastery brown. What mood would feel like Ember and no one else?', prompt: 'Choose a braver mood:' },
       ceo: { critique: 'These colors look like every specialty roaster. What palette signals where we sit in the market?', prompt: 'Set the brand mood:' },
       user: { critique: 'The colors feel calm but generic. What mood would make me trust this at a glance?', prompt: 'Pick the feeling:' },
@@ -145,18 +187,26 @@ const ember: Brand = {
       options: [
         {
           id: 'product', value: 'product-led', vibe: 'Product-led', tag: 'Product-led layout',
-          patch: { concept: 'product-led', headline: 'This month, three fresh roasts.', subhead: 'A rotating selection of single-origin coffees, picked and roasted to order.', heroImg: "This month's lineup", social: '4.9 average across 2,300 reviews' },
+          patch: { concept: 'product-led', heroLayout: 'split', headline: 'This month, three fresh roasts.', subhead: 'A rotating selection of single-origin coffees, picked and roasted to order.', heroImg: "This month's lineup", social: '4.9 average across 2,300 reviews' },
         },
         {
           id: 'ritual', value: 'ritual-led', vibe: 'Ritual-led', tag: 'Ritual-led layout',
-          patch: { concept: 'ritual-led', headline: 'Your best morning, on repeat.', subhead: 'A standing invitation to slow down for ten good minutes every day.', heroImg: 'Pour-over in morning light', social: 'Trusted by 12,000 home baristas' },
+          patch: { concept: 'ritual-led', heroLayout: 'centered', headline: 'Your best morning, on repeat.', subhead: 'A standing invitation to slow down for ten good minutes every day.', heroImg: 'Pour-over in morning light', social: 'Trusted by 12,000 home baristas' },
         },
         {
           id: 'origin', value: 'origin-led', vibe: 'Origin-led', tag: 'Origin-led layout',
-          patch: { concept: 'origin-led', headline: 'A farm behind every bag.', subhead: 'Sourced from nine farms we visit each harvest, roasted the morning it ships.', heroImg: 'Hands at the origin farm', social: 'Sourced from 9 farms we visit each harvest' },
+          patch: { concept: 'origin-led', heroLayout: 'imageFirst', headline: 'A farm behind every bag.', subhead: 'Sourced from nine farms we visit each harvest, roasted the morning it ships.', heroImg: 'Hands at the origin farm', social: 'Sourced from 9 farms we visit each harvest' },
         },
       ],
     },
+    heroLayoutDot(
+      'The hero runs copy beside an image, but the beans are the draw. Should the image carry more of the hero?',
+      {
+        cd: { critique: 'The hero splits attention evenly between words and image. Which composition should lead the eye?', prompt: 'Recompose the hero:' },
+        ceo: { critique: 'The hero treatment is conventional. Which arrangement makes the strongest first impression?', prompt: 'Set the hero composition:' },
+        user: { critique: 'The top of the page is a bit flat. How should the hero be laid out?', prompt: 'Lay out the hero:' },
+      },
+    ),
   ],
 }
 
@@ -240,7 +290,7 @@ const cadence: Brand = {
         { id: 'review', value: 'weekly review', vibe: 'Weekly recap', tag: 'Review-first UI' },
       ],
     },
-    paletteDot('It reads like every other dev tool — deep indigo and techy. Lead with a different feeling?', {
+    paletteDot('It reads like every other dev tool — deep indigo and techy. Lead with a different feeling?', cadenceMoods, {
       cd: { critique: 'Deep indigo reads like every dev tool. What mood would make Cadence feel calmer than the rest?', prompt: 'Choose a braver mood:' },
       ceo: { critique: 'The palette looks like generic SaaS. What colors signal a calmer category?', prompt: 'Set the brand mood:' },
       user: { critique: 'The colors feel techy and cold. What mood would make this feel calm to use?', prompt: 'Pick the feeling:' },
@@ -270,11 +320,19 @@ const cadence: Brand = {
         user: { critique: 'The page lists a lot of features. What one idea should it be about?', prompt: 'Make it about one thing:' },
       },
       options: [
-        { id: 'feature', value: 'product-led', vibe: 'Feature-led', tag: 'Feature-led layout', patch: { concept: 'product-led', headline: 'Plan less. Do more.', subhead: 'Cadence turns scattered tasks into one calm timeline you will actually follow.', heroImg: 'timeline', social: 'Powering focused teams at' } },
-        { id: 'outcome', value: 'ritual-led', vibe: 'Outcome-led', tag: 'Outcome-led layout', patch: { concept: 'ritual-led', headline: 'Get six hours back every week.', subhead: 'Let Cadence plan the week around you, and reclaim the time you spend deciding.', heroImg: 'weekly review', social: 'Members reclaim 6 hours a week' } },
-        { id: 'maker', value: 'origin-led', vibe: 'Maker-led', tag: 'Maker-led layout', patch: { concept: 'origin-led', headline: 'Built by people with too much to do.', subhead: 'Made by a small team who needed a calmer week, then shipped the tool that gave it.', heroImg: 'focus mode', social: 'Built by the team behind tools you use daily' } },
+        { id: 'feature', value: 'product-led', vibe: 'Feature-led', tag: 'Feature-led layout', patch: { concept: 'product-led', heroLayout: 'split', headline: 'Plan less. Do more.', subhead: 'Cadence turns scattered tasks into one calm timeline you will actually follow.', heroImg: 'timeline', social: 'Powering focused teams at' } },
+        { id: 'outcome', value: 'ritual-led', vibe: 'Outcome-led', tag: 'Outcome-led layout', patch: { concept: 'ritual-led', heroLayout: 'centered', headline: 'Get six hours back every week.', subhead: 'Let Cadence plan the week around you, and reclaim the time you spend deciding.', heroImg: 'weekly review', social: 'Members reclaim 6 hours a week' } },
+        { id: 'maker', value: 'origin-led', vibe: 'Maker-led', tag: 'Maker-led layout', patch: { concept: 'origin-led', heroLayout: 'imageFirst', headline: 'Built by people with too much to do.', subhead: 'Made by a small team who needed a calmer week, then shipped the tool that gave it.', heroImg: 'focus mode', social: 'Built by the team behind tools you use daily' } },
       ],
     },
+    heroLayoutDot(
+      'The hero puts the product mock beside the pitch. Should the screenshot lead, or the page center on the promise?',
+      {
+        cd: { critique: 'The hero balances copy and the product shot evenly. Which composition should command the fold?', prompt: 'Recompose the hero:' },
+        ceo: { critique: 'The hero treatment is the default SaaS split. Which arrangement sells the product fastest?', prompt: 'Set the hero composition:' },
+        user: { critique: 'It is not obvious where to look first up top. How should the hero be arranged?', prompt: 'Lay out the hero:' },
+      },
+    ),
   ],
 }
 
@@ -354,7 +412,7 @@ const maren: Brand = {
         { id: 'skin', value: 'On real skin, morning light', vibe: 'Honest · in-use', tag: 'Honest, in-use imagery' },
       ],
     },
-    paletteDot('The palette is safe spa-beige. What mood should the brand own?', {
+    paletteDot('The palette is safe spa-beige. What mood should the brand own?', marenMoods, {
       cd: { critique: 'Spa-beige is the wellness default. What mood would feel like Maren and no one else?', prompt: 'Choose a braver mood:' },
       ceo: { critique: 'The palette looks like every clean brand. What colors signal where we sit in the market?', prompt: 'Set the brand mood:' },
       user: { critique: 'The colors feel calm but generic. What mood would make me trust this at a glance?', prompt: 'Pick the feeling:' },
@@ -384,11 +442,23 @@ const maren: Brand = {
         user: { critique: 'The page shows a lot of products. What one idea should it be about?', prompt: 'Make it about one thing:' },
       },
       options: [
-        { id: 'essentials', value: 'product-led', vibe: 'Essentials-led', tag: 'Essentials-led layout', patch: { concept: 'product-led', headline: 'Five essentials. Better skin.', subhead: 'A short, considered routine of five products and nothing you do not need.', heroImg: 'Product still life', social: 'Recommended by 200+ dermatologists' } },
-        { id: 'ritual', value: 'ritual-led', vibe: 'Ritual-led', tag: 'Ritual-led layout', patch: { concept: 'ritual-led', headline: 'A quiet routine that works.', subhead: 'Three calm steps, morning and night, that your skin will actually keep up with.', heroImg: 'On real skin, morning light', social: '4.8 from 11,000 verified reviews' } },
-        { id: 'proof', value: 'origin-led', vibe: 'Proof-led', tag: 'Proof-led layout', patch: { concept: 'origin-led', headline: 'Clinically proven, quietly made.', subhead: 'Dermatologist formulated, fragrance free, and proven in independent testing.', heroImg: 'Texture macro, the cream itself', social: '92% saw calmer skin in four weeks' } },
+        { id: 'essentials', value: 'product-led', vibe: 'Essentials-led', tag: 'Essentials-led layout', patch: { concept: 'product-led', heroLayout: 'centered', headline: 'Five essentials. Better skin.', subhead: 'A short, considered routine of five products and nothing you do not need.', heroImg: 'Product still life', social: 'Recommended by 200+ dermatologists' } },
+        { id: 'ritual', value: 'ritual-led', vibe: 'Ritual-led', tag: 'Ritual-led layout', patch: { concept: 'ritual-led', heroLayout: 'centered', headline: 'A quiet routine that works.', subhead: 'Three calm steps, morning and night, that your skin will actually keep up with.', heroImg: 'On real skin, morning light', social: '4.8 from 11,000 verified reviews' } },
+        { id: 'proof', value: 'origin-led', vibe: 'Proof-led', tag: 'Proof-led layout', patch: { concept: 'origin-led', heroLayout: 'imageFirst', headline: 'Clinically proven, quietly made.', subhead: 'Dermatologist formulated, fragrance free, and proven in independent testing.', heroImg: 'Texture macro, the cream itself', social: '92% saw calmer skin in four weeks' } },
       ],
     },
+    heroLayoutDot(
+      'The hero stacks copy above an inset image. Should the image run edge-to-edge and lead the page instead?',
+      {
+        cd: { critique: 'The hero keeps the image politely contained. Would a full-bleed, image-first opening feel more editorial?', prompt: 'Recompose the hero:' },
+        ceo: { critique: 'The hero is restrained to the point of quiet. Which composition best frames the brand?', prompt: 'Set the hero composition:' },
+        user: { critique: 'The opening image feels small and boxed in. How should the hero be arranged?', prompt: 'Lay out the hero:' },
+      },
+      [
+        { id: 'centered', value: 'centered', vibe: 'Centered', tag: 'Centered, inset image', patch: { heroLayout: 'centered' } },
+        { id: 'imageFirst', value: 'imageFirst', vibe: 'Image-first', tag: 'Full-bleed, image-first', patch: { heroLayout: 'imageFirst' } },
+      ],
+    ),
   ],
 }
 
