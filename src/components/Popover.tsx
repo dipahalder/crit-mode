@@ -1,22 +1,45 @@
-import type { Dot } from '../types'
+import type { CSSProperties } from 'react'
+import type { Dot, Preview } from '../types'
 import { clean } from '../utils/clean'
 
-// The critique popover (M7): 334px, header (pin chip + region + close),
-// critique, prompt, and a footer hint. Option cards and the preview banner are
-// M8. Positioned by the caller from the target's bounding box; rendered in the
-// canvas so it can float past the frame edge without being clipped.
+// The critique popover (M7) plus the fan-out and live try-on (M8): header (pin
+// chip + region + close), critique, prompt, a "trying it on" banner while a
+// preview is active, the option cards, and a footer hint. Tapping a card
+// previews it live; the Accept button is M9. Positioned by the caller from the
+// target's bounding box, rendered in the canvas so it can float past the frame.
+
+const cardBase: CSSProperties = {
+  position: 'relative',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 10,
+  background: '#fff',
+  border: '1px solid #ececef',
+  borderRadius: 10,
+  padding: '10px 11px',
+  transition: 'border-color .15s ease, background .15s ease',
+}
 
 export default function Popover({
   dot,
   left,
   top,
+  currentValue,
+  preview,
   onClose,
+  onPreviewOption,
 }: {
   dot: Dot
   left: number
   top: number
+  currentValue: string
+  preview: Preview | null
   onClose: () => void
+  onPreviewOption: (next: Preview) => void
 }) {
+  const isPalette = dot.kind === 'palette'
+  const previewingThisDot = !!(preview && preview.dotId === dot.id)
+
   return (
     <div
       style={{
@@ -48,8 +71,55 @@ export default function Popover({
           ×
         </button>
       </div>
+
       <p style={{ fontSize: 14.5, lineHeight: 1.5, color: '#27272a', margin: '0 0 4px', fontWeight: 500 }}>{clean(dot.critique)}</p>
       <div style={{ fontSize: 11.5, color: '#a1a1aa', margin: '12px 0 9px', fontWeight: 600 }}>{clean(dot.prompt)}</div>
+
+      {previewingThisDot && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#eef0ff', border: '1px solid #e0e2ff', borderRadius: 8, padding: '7px 10px', marginBottom: 9, fontSize: 11, color: '#4338ca', fontWeight: 600 }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4f46e5', flex: '0 0 auto' }} />
+          {clean('Trying it on live — Accept to keep, or close to revert.')}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {dot.options.map((opt) => {
+          const isCurrent = currentValue === opt.value
+          const isPreviewing = !!(preview && preview.dotId === dot.id && preview.optId === opt.id)
+          const clickable = !isCurrent
+          return (
+            <div
+              key={opt.id}
+              onClick={clickable ? () => onPreviewOption({ dotId: dot.id, optId: opt.id, field: dot.field, value: opt.value }) : undefined}
+              style={{
+                ...cardBase,
+                cursor: clickable ? 'pointer' : 'default',
+                background: isPreviewing ? '#eef0ff' : isCurrent ? '#f6f5ff' : '#fff',
+                borderColor: isPreviewing ? '#9aa0f5' : isCurrent ? '#dcdcff' : '#ececef',
+              }}
+            >
+              {isPalette ? (
+                <>
+                  <div style={{ display: 'flex', gap: 5, flex: '0 0 auto' }}>
+                    {(opt.swatch ?? []).map((sw, i) => (
+                      <span key={i} style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid rgba(0,0,0,.08)', background: sw }} />
+                    ))}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: '#18181b' }}>{clean(opt.vibe)}</div>
+                </>
+              ) : (
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.35, color: '#18181b' }}>{clean(opt.value)}</div>
+                  <div style={{ fontSize: 11, color: '#a1a1aa', marginTop: 3 }}>{clean(opt.vibe)}</div>
+                </div>
+              )}
+              {isCurrent && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#a1a1aa', flex: '0 0 auto' }}>Current</span>}
+              {isPreviewing && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.4px', color: '#4338ca', flex: '0 0 auto' }}>PREVIEWING</span>}
+            </div>
+          )
+        })}
+      </div>
+
       <div style={{ fontSize: 11, color: '#c4c4cc', marginTop: 11 }}>{clean('Tap an option to try it on live. Accept to keep it.')}</div>
     </div>
   )

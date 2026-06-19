@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
 import { brands, palettes } from './data/brands'
-import type { BrandKey, Page, PaletteKey, Screen } from './types'
+import type { BrandKey, Page, Preview, Screen } from './types'
 import { clean } from './utils/clean'
 import TopBar from './components/TopBar'
 import StartScreen from './components/StartScreen'
@@ -19,40 +19,48 @@ const appShell: CSSProperties = {
   overflow: 'hidden',
 }
 
-// The three color/mood fan-out options (README line 206). Real palette changing
-// arrives with the palette pin (M8/M9); this switcher is a temporary M3
-// verification affordance, shown only in the workspace.
-const SWITCHER_KEYS: PaletteKey[] = ['warmEarthy', 'bold', 'cream']
-
 export default function App() {
   const [screen, setScreen] = useState<Screen>('start')
   const [activeBrand, setActiveBrand] = useState<BrandKey>('ember')
   const [page, setPage] = useState<Page>(() => ({ ...brands.ember.defaults, palette: brands.ember.palKey }))
   const [openDot, setOpenDot] = useState<string | null>(null)
+  const [preview, setPreview] = useState<Preview | null>(null)
 
   // chooseBrand: reset the page to the brand's defaults + palette, enter the
-  // workspace, clear any open note (versions/lineage reset is wired in M9).
+  // workspace, clear any open note and preview (lineage reset is wired in M9).
   // switchBrand returns to the picker. (CLAUDE.md state transitions.)
   function chooseBrand(key: BrandKey) {
     setActiveBrand(key)
     setPage({ ...brands[key].defaults, palette: brands[key].palKey })
     setOpenDot(null)
+    setPreview(null)
     setScreen('workspace')
   }
   function switchBrand() {
     setOpenDot(null)
+    setPreview(null)
     setScreen('start')
   }
-  // openNote toggles the open dot (preview clearing is wired in M8).
+  // openNote toggles the open dot and clears any preview (so try-ons never
+  // carry across notes). closeNote clears both.
   function openNote(id: string) {
     setOpenDot((cur) => (cur === id ? null : id))
+    setPreview(null)
   }
   function closeNote() {
     setOpenDot(null)
+    setPreview(null)
+  }
+  // previewOption sets the try-on, or clears it when the same card is tapped
+  // again. Accept (commit) is M9.
+  function previewOption(next: Preview) {
+    setPreview((cur) => (cur && cur.dotId === next.dotId && cur.optId === next.optId ? null : next))
   }
 
   const brand = brands[activeBrand]
-  const view = page // no preview yet (M8); page-as-data render (guardrail 1)
+  // Derived render model (guardrail 1): during a preview, render from view, not
+  // the committed page, so the try-on is visible without committing.
+  const view: Page = preview ? ({ ...page, [preview.field]: preview.value } as Page) : page
   const pal = palettes[view.palette]
 
   return (
@@ -63,60 +71,19 @@ export default function App() {
         {screen === 'start' ? (
           <StartScreen onChoose={chooseBrand} />
         ) : (
-          <Workspace brand={brand} view={view} pal={pal} openDot={openDot} onOpenNote={openNote} onCloseNote={closeNote} />
+          <Workspace
+            brand={brand}
+            page={page}
+            view={view}
+            pal={pal}
+            openDot={openDot}
+            preview={preview}
+            onOpenNote={openNote}
+            onCloseNote={closeNote}
+            onPreviewOption={previewOption}
+          />
         )}
       </div>
-
-      {/* TEMPORARY (M3 check): switch page.palette to watch the recolor. */}
-      {screen === 'workspace' && (
-        <div
-          style={{
-            position: 'fixed',
-            left: 16,
-            bottom: 16,
-            zIndex: 50,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            background: '#fff',
-            border: '1px solid #e4e4e9',
-            borderRadius: 10,
-            padding: '8px 10px',
-            boxShadow: '0 4px 14px -6px rgba(0,0,0,.3)',
-            fontFamily: "'Manrope', sans-serif",
-          }}
-        >
-          <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.5px', color: '#a1a1aa', textTransform: 'uppercase', marginRight: 2 }}>Palette (M3)</span>
-          {SWITCHER_KEYS.map((k) => {
-            const active = page.palette === k
-            return (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setPage((p) => ({ ...p, palette: k }))}
-                aria-pressed={active}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontFamily: 'inherit',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  color: active ? '#fff' : '#52525b',
-                  background: active ? '#4f46e5' : '#fff',
-                  border: `1px solid ${active ? '#4f46e5' : '#e4e4e9'}`,
-                  borderRadius: 8,
-                  padding: '6px 10px',
-                }}
-              >
-                <span style={{ width: 11, height: 11, borderRadius: '50%', background: palettes[k].accent, border: '1px solid rgba(0,0,0,.15)' }} />
-                {k}
-              </button>
-            )
-          })}
-        </div>
-      )}
     </div>
   )
 }

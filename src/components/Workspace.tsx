@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import type { Brand, FieldKey, Page, Palette, RegisterTarget } from '../types'
+import type { Brand, FieldKey, Page, Palette, Preview, RegisterTarget } from '../types'
 import PageFrame from './PageFrame'
 import EmberLayout from './EmberLayout'
 import CadenceLayout from './CadenceLayout'
@@ -69,18 +69,24 @@ interface Measured {
 
 export default function Workspace({
   brand,
+  page,
   view,
   pal,
   openDot,
+  preview,
   onOpenNote,
   onCloseNote,
+  onPreviewOption,
 }: {
   brand: Brand
+  page: Page
   view: Page
   pal: Palette
   openDot: string | null
+  preview: Preview | null
   onOpenNote: (id: string) => void
   onCloseNote: () => void
+  onPreviewOption: (next: Preview) => void
 }) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const frameRef = useRef<HTMLDivElement>(null)
@@ -228,7 +234,17 @@ export default function Workspace({
           )
         })}
 
-        {pop && openDotData && <Popover dot={openDotData} left={pop.left} top={pop.top} onClose={onCloseNote} />}
+        {pop && openDotData && (
+          <Popover
+            dot={openDotData}
+            left={pop.left}
+            top={pop.top}
+            currentValue={page[openDotData.field]}
+            preview={preview}
+            onClose={onCloseNote}
+            onPreviewOption={onPreviewOption}
+          />
+        )}
       </div>
 
       <CommentsRail brand={brand} openDot={openDot} onRowClick={handleOpen} />
