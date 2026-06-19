@@ -1,12 +1,13 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import type { Brand, FieldKey, Page, Palette, Preview, RegisterTarget } from '../types'
+import type { Brand, Dot, FieldKey, Option, Page, Palette, Preview, RegisterTarget, Version } from '../types'
 import PageFrame from './PageFrame'
 import EmberLayout from './EmberLayout'
 import CadenceLayout from './CadenceLayout'
 import MarenLayout from './MarenLayout'
 import CommentsRail from './CommentsRail'
 import Popover from './Popover'
+import LineageStrip from './LineageStrip'
 
 // The workspace: a dotted scroll canvas that centers the page frame and renders
 // the active brand's layout, a pin overlay anchored to each critiqued region by
@@ -39,9 +40,9 @@ function pinStyle(x: number, y: number, open: boolean, pulse: boolean): CSSPrope
     width: 27,
     height: 27,
     borderRadius: '50%',
-    background: open ? '#3730a3' : '#4f46e5',
+    background: open ? '#0E6FCB' : '#1684EC',
     color: '#fff',
-    border: '2.5px solid #fff',
+    border: 'none',
     fontFamily: '"Manrope", sans-serif',
     fontWeight: 800,
     fontSize: 12.5,
@@ -51,7 +52,7 @@ function pinStyle(x: number, y: number, open: boolean, pulse: boolean): CSSPrope
     cursor: 'pointer',
     padding: 0,
     zIndex: 8,
-    boxShadow: open ? '0 0 0 5px rgba(79,70,229,.22), 0 3px 8px rgba(0,0,0,.3)' : '0 2px 6px rgba(0,0,0,.32)',
+    boxShadow: open ? '0 0 0 5px rgba(22,132,236,.22), 0 3px 8px rgba(0,0,0,.3)' : '0 2px 6px rgba(0,0,0,.32)',
     animation: !open && pulse ? 'ate-ping 1.9s ease-out infinite' : 'none',
     transition: 'background .15s ease, box-shadow .15s ease',
   }
@@ -74,9 +75,12 @@ export default function Workspace({
   pal,
   openDot,
   preview,
+  resolvedDots,
+  versions,
   onOpenNote,
   onCloseNote,
   onPreviewOption,
+  onAcceptOption,
 }: {
   brand: Brand
   page: Page
@@ -84,9 +88,12 @@ export default function Workspace({
   pal: Palette
   openDot: string | null
   preview: Preview | null
+  resolvedDots: Record<string, string>
+  versions: Version[]
   onOpenNote: (id: string) => void
   onCloseNote: () => void
   onPreviewOption: (next: Preview) => void
+  onAcceptOption: (dot: Dot, opt: Option) => void
 }) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const frameRef = useRef<HTMLDivElement>(null)
@@ -216,6 +223,7 @@ export default function Workspace({
 
   return (
     <div style={workspaceStyle}>
+      <LineageStrip versions={versions} />
       <div ref={canvasRef} style={canvasStyle}>
         <PageFrame ref={frameRef} pal={pal} url={brand.url}>
           {brand.key === 'ember' && <EmberLayout brand={brand} view={view} register={register} />}
@@ -243,11 +251,12 @@ export default function Workspace({
             preview={preview}
             onClose={onCloseNote}
             onPreviewOption={onPreviewOption}
+            onAccept={(opt) => onAcceptOption(openDotData, opt)}
           />
         )}
       </div>
 
-      <CommentsRail brand={brand} openDot={openDot} onRowClick={handleOpen} />
+      <CommentsRail brand={brand} openDot={openDot} resolvedDots={resolvedDots} onRowClick={handleOpen} />
     </div>
   )
 }

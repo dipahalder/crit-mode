@@ -66,7 +66,7 @@ const ember: Brand = {
     },
     {
       id: 'subhead', n: 5, kind: 'text', region: 'Subhead voice', field: 'subhead',
-      critique: 'The subhead just explains the product. It could set a tone instead.', prompt: 'Rewrite the subhead voice:',
+      critique: 'The subhead just explains the product. What tone could it set instead?', prompt: 'Rewrite the subhead voice:',
       options: [
         { id: 'sensory', value: 'Roasted to order, shipped within a day, and tuned to how you actually brew.', vibe: 'Sensory · specific', tag: 'Sensory, specific copy' },
         { id: 'warm', value: 'A standing invitation to slow down for ten good minutes every morning.', vibe: 'Warm · unhurried', tag: 'Warm, unhurried voice' },
@@ -94,7 +94,7 @@ const ember: Brand = {
     paletteDot('The mood reads safe and roastery-default. What feeling should the page lead with?'),
     {
       id: 'social', n: 6, kind: 'text', region: 'Social proof', field: 'social',
-      critique: '"12,000 home baristas" is a vanity number. Proof can be quieter and truer.', prompt: 'Choose what to prove:',
+      critique: '"12,000 home baristas" is a vanity number. Could the proof be quieter and truer?', prompt: 'Choose what to prove:',
       options: [
         { id: 'press', value: 'Featured in Standart, Sprudge & Monocle', vibe: 'Editorial', tag: 'Editorial credibility' },
         { id: 'rating', value: '4.9 average across 2,300 reviews', vibe: 'Earned · specific', tag: 'Specific, earned proof' },

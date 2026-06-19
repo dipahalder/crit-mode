@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import type { Dot, Preview } from '../types'
+import type { Dot, Option, Preview } from '../types'
 import { clean } from '../utils/clean'
 
 // The critique popover (M7) plus the fan-out and live try-on (M8): header (pin
@@ -28,6 +28,7 @@ export default function Popover({
   preview,
   onClose,
   onPreviewOption,
+  onAccept,
 }: {
   dot: Dot
   left: number
@@ -36,6 +37,7 @@ export default function Popover({
   preview: Preview | null
   onClose: () => void
   onPreviewOption: (next: Preview) => void
+  onAccept: (opt: Option) => void
 }) {
   const isPalette = dot.kind === 'palette'
   const previewingThisDot = !!(preview && preview.dotId === dot.id)
@@ -115,6 +117,18 @@ export default function Popover({
               )}
               {isCurrent && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#a1a1aa', flex: '0 0 auto' }}>Current</span>}
               {isPreviewing && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.4px', color: '#4338ca', flex: '0 0 auto' }}>PREVIEWING</span>}
+              {clickable && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onAccept(opt)
+                  }}
+                  style={{ fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, color: '#fff', background: '#4f46e5', border: 'none', borderRadius: 7, padding: '8px 15px', cursor: 'pointer', flex: '0 0 auto' }}
+                >
+                  Accept
+                </button>
+              )}
             </div>
           )
         })}

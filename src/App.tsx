@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
 import { brands, palettes } from './data/brands'
-import type { BrandKey, Page, Preview, Screen } from './types'
+import type { BrandKey, Dot, Option, Page, PaletteKey, Preview, Screen, Version } from './types'
 import { clean } from './utils/clean'
 import TopBar from './components/TopBar'
 import StartScreen from './components/StartScreen'
@@ -25,13 +25,18 @@ export default function App() {
   const [page, setPage] = useState<Page>(() => ({ ...brands.ember.defaults, palette: brands.ember.palKey }))
   const [openDot, setOpenDot] = useState<string | null>(null)
   const [preview, setPreview] = useState<Preview | null>(null)
+  const [resolvedDots, setResolvedDots] = useState<Record<string, string>>({})
+  const [versions, setVersions] = useState<Version[]>([])
 
-  // chooseBrand: reset the page to the brand's defaults + palette, enter the
-  // workspace, clear any open note and preview (lineage reset is wired in M9).
+  // chooseBrand: reset the page to the brand's defaults + palette, reset the
+  // lineage to v1, clear any open note and preview, enter the workspace.
   // switchBrand returns to the picker. (CLAUDE.md state transitions.)
   function chooseBrand(key: BrandKey) {
+    const br = brands[key]
     setActiveBrand(key)
-    setPage({ ...brands[key].defaults, palette: brands[key].palKey })
+    setPage({ ...br.defaults, palette: br.palKey })
+    setResolvedDots({})
+    setVersions([{ n: 1, palette: br.palKey, headline: br.defaults.headline, note: 'Starting point' }])
     setOpenDot(null)
     setPreview(null)
     setScreen('workspace')
@@ -52,9 +57,21 @@ export default function App() {
     setPreview(null)
   }
   // previewOption sets the try-on, or clears it when the same card is tapped
-  // again. Accept (commit) is M9.
+  // again.
   function previewOption(next: Preview) {
     setPreview((cur) => (cur && cur.dotId === next.dotId && cur.optId === next.optId ? null : next))
+  }
+  // accept commits an option: write page[field], mark the dot resolved, push a
+  // version, and clear the open note + preview. (CLAUDE.md accept transition.)
+  function accept(dot: Dot, opt: Option) {
+    const newPage: Page = { ...page, [dot.field]: opt.value } as Page
+    const palKey: PaletteKey = dot.field === 'palette' ? (opt.value as PaletteKey) : page.palette
+    const chosen = dot.field === 'palette' ? `${opt.vibe} palette` : opt.value
+    setPage(newPage)
+    setResolvedDots((r) => ({ ...r, [dot.id]: chosen }))
+    setVersions((v) => [...v, { n: v.length + 1, palette: palKey, headline: newPage.headline, note: dot.region }])
+    setOpenDot(null)
+    setPreview(null)
   }
 
   const brand = brands[activeBrand]
@@ -78,9 +95,12 @@ export default function App() {
             pal={pal}
             openDot={openDot}
             preview={preview}
+            resolvedDots={resolvedDots}
+            versions={versions}
             onOpenNote={openNote}
             onCloseNote={closeNote}
             onPreviewOption={previewOption}
+            onAcceptOption={accept}
           />
         )}
       </div>

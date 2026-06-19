@@ -27,6 +27,20 @@ body {
   min-height: 100vh;
 }
 
+/* Cross-fade applied to a region when its committed value changes (M9). The
+   element is keyed on its value, so React remounts it and this replays. */
+@keyframes ate-fade {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.ate-fade {
+  animation: ate-fade 0.35s ease;
+}
+
 /* Popover entrance, lifted verbatim from Atelier.dc.html (M7). */
 @keyframes ate-pop {
   from {
@@ -43,12 +57,12 @@ body {
    at rest (no note open) to invite the first click (M5). */
 @keyframes ate-ping {
   0% {
-    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.5), 0 2px 6px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 0 0 0 rgba(22, 132, 236, 0.5), 0 2px 6px rgba(0, 0, 0, 0.28);
   }
   70% {
-    box-shadow: 0 0 0 11px rgba(79, 70, 229, 0), 0 2px 6px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 0 0 11px rgba(22, 132, 236, 0), 0 2px 6px rgba(0, 0, 0, 0.28);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0), 0 2px 6px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 0 0 0 rgba(22, 132, 236, 0), 0 2px 6px rgba(0, 0, 0, 0.28);
   }
 }
