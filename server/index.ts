@@ -3,8 +3,9 @@ import express from 'express'
 import cors from 'cors'
 import Anthropic from '@anthropic-ai/sdk'
 import { brands, paletteOptions } from '../src/data/brands'
+import { PERSONA_MAP } from '../src/data/personas'
 import { clean } from '../src/utils/clean'
-import type { BrandKey, CritiqueResponse, FieldKey } from '../src/types'
+import type { BrandKey, CritiqueResponse, FieldKey, Persona } from '../src/types'
 
 // M11: the critique proxy. One endpoint, POST /critique, that generates a live
 // critique with the Claude Messages API and falls back to the static dots on
@@ -96,11 +97,15 @@ function validate(parsed: unknown, region: FieldKey): CritiqueResponse {
   }
 }
 
-async function generate(brand: BrandKey, region: FieldKey, pageModel: Record<string, unknown>, persona?: string): Promise<CritiqueResponse> {
+async function generate(brand: BrandKey, region: FieldKey, pageModel: Record<string, unknown>, persona?: Persona): Promise<CritiqueResponse> {
   const b = brands[brand]
   const dot = b.dots.find((d) => d.field === region)!
   const currentValue = pageModel?.[region]
   const paletteNote = region === 'palette' ? `\nThis is the color and mood region. Each option "value" must be exactly one of: ${PALETTE_VALUES.join(', ')}.` : ''
+
+  // Persona voice (M13): layer the point of view onto the structural rules.
+  const p = PERSONA_MAP[persona as Persona] ?? PERSONA_MAP.designer
+  const system = `You are ${p.name}, ${p.voice}.\n\n${SYSTEM_PROMPT}\n\nStay in this person's voice and priorities: change what you notice and how you say it, never the structure.`
 
   const user = `Brand: ${b.name} (${b.category}).
 Region to critique: ${dot.region} (page field "${region}").
@@ -114,7 +119,7 @@ Return JSON only, shaped exactly: {"critique": string, "prompt": string, "option
   const message = await client!.messages.create({
     model: MODEL,
     max_tokens: 1024,
-    system: SYSTEM_PROMPT,
+    system,
     messages: [{ role: 'user', content: user }],
   })
 

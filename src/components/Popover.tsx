@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
-import type { Dot, Option, Preview } from '../types'
+import type { Dot, Option, PersonaInfo, Preview } from '../types'
 import { clean } from '../utils/clean'
+import Avatar from './Avatar'
 
 // The critique popover (M7) plus the fan-out and live try-on (M8): header (pin
 // chip + region + close), critique, prompt, a "trying it on" banner while a
@@ -26,6 +27,7 @@ export default function Popover({
   top,
   currentValue,
   preview,
+  persona,
   onClose,
   onPreviewOption,
   onAccept,
@@ -35,6 +37,7 @@ export default function Popover({
   top: number
   currentValue: string
   preview: Preview | null
+  persona: PersonaInfo
   onClose: () => void
   onPreviewOption: (next: Preview) => void
   onAccept: (opt: Option) => void
@@ -73,6 +76,14 @@ export default function Popover({
         >
           ×
         </button>
+      </div>
+
+      {/* Attribution (M13): who left this note. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+        <Avatar persona={persona} size={20} />
+        <span style={{ fontSize: 11.5, color: '#71717a' }}>
+          <span style={{ fontWeight: 700, color: '#27272a' }}>{clean(persona.name)}</span>, {clean(persona.role)}
+        </span>
       </div>
 
       <p style={{ fontSize: 14.5, lineHeight: 1.5, color: '#27272a', margin: '0 0 4px', fontWeight: 500 }}>{clean(dot.critique)}</p>

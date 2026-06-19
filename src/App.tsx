@@ -1,25 +1,35 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { brands, palettes } from './data/brands'
-import type { BrandKey, CritiqueResponse, Dot, Option, Page, PaletteKey, Preview, Screen, Version } from './types'
+import { PERSONA_MAP } from './data/personas'
+import type { BrandKey, CritiqueResponse, Dot, Option, Page, PaletteKey, Persona, Preview, Screen, Version } from './types'
 import { clean } from './utils/clean'
 import TopBar from './components/TopBar'
 import StartScreen from './components/StartScreen'
 import Workspace from './components/Workspace'
 
-// Merge a live critique over a static dot (M11). Text dots take the generated
-// critique/prompt/options; palette dots keep their static options (the fixed
-// themes + swatches) and only take the generated critique/prompt.
-function mergeDot(d: Dot, live: CritiqueResponse | undefined): Dot {
-  if (!live) return d
-  if (d.kind === 'palette') return { ...d, critique: live.critique, prompt: live.prompt }
-  return {
-    ...d,
-    critique: live.critique,
-    prompt: live.prompt,
-    // Up to three options per swap.
-    options: live.options.slice(0, 3).map((o, i) => ({ id: `llm-${i}`, value: o.value, vibe: o.vibe, tag: o.tag })),
+// The authored copy for a persona, falling back to the base (designer) voice.
+function personaCopy(d: Dot, persona: Persona): { critique: string; prompt: string } {
+  return d.byPersona?.[persona] ?? { critique: d.critique, prompt: d.prompt }
+}
+
+// Resolve a dot's critique/prompt/options for the current persona (M13). A live
+// LLM critique (already in the persona's voice) wins; otherwise use the authored
+// per-persona copy. Options never change with persona (the tool owns the
+// directions); palette/concept keep their static options.
+function mergeDot(d: Dot, live: CritiqueResponse | undefined, persona: Persona): Dot {
+  if (live) {
+    if (d.kind === 'palette' || d.kind === 'concept') return { ...d, critique: live.critique, prompt: live.prompt }
+    return {
+      ...d,
+      critique: live.critique,
+      prompt: live.prompt,
+      // Up to three options per swap.
+      options: live.options.slice(0, 3).map((o, i) => ({ id: `llm-${i}`, value: o.value, vibe: o.vibe, tag: o.tag })),
+    }
   }
+  const { critique, prompt } = personaCopy(d, persona)
+  return { ...d, critique, prompt }
 }
 
 // App shell from Atelier.dc.html: a full-height column with the top bar above a
@@ -45,6 +55,7 @@ export default function App() {
   // Live critiques keyed by dot id, and whether a fetch round is in flight (M11).
   const [live, setLive] = useState<Record<string, CritiqueResponse>>({})
   const [loading, setLoading] = useState(false)
+  const [persona, setPersona] = useState<Persona>('designer')
   // Generation counter so only the latest fetch round applies its results (keeps
   // a comment's text stable once shown, and tolerates React StrictMode).
   const genRef = useRef(0)
@@ -121,7 +132,7 @@ export default function App() {
           const r = await fetch('/critique', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ brand: activeBrand, region: d.field, pageModel: page }),
+            body: JSON.stringify({ brand: activeBrand, region: d.field, pageModel: page, persona }),
             signal: ctrl.signal,
           })
           if (!r.ok) throw new Error(`status ${r.status}`)
@@ -138,14 +149,15 @@ export default function App() {
       clearTimeout(timer)
       ctrl.abort()
     }
-  }, [page, activeBrand, screen])
+  }, [page, activeBrand, screen, persona])
 
   // Full-page loading treatment only on the initial round (nothing loaded yet);
   // an Accept re-critique refreshes in place without blacking the comments out.
   const critiquing = loading && Object.keys(live).length === 0
-  // Render all comments together once the round is in (none while critiquing).
-  // A comment whose fetch failed simply never appears. Concept dots are curated.
-  const dots = critiquing ? [] : brand.dots.filter((d) => d.field === 'concept' || live[d.id]).map((d) => mergeDot(d, live[d.id]))
+  // Render all comments together once the round is in (none while critiquing). A
+  // dot renders if it has a live critique, authored per-persona copy (Ember), or
+  // is a curated concept dot. Resolved to the current persona's voice (M13).
+  const dots = critiquing ? [] : brand.dots.filter((d) => live[d.id] || d.byPersona || d.kind === 'concept').map((d) => mergeDot(d, live[d.id], persona))
 
   // Derived render model (guardrail 1): during a preview, render from view, not
   // the committed page, so the try-on is visible without committing. A page-level
@@ -172,6 +184,8 @@ export default function App() {
             resolvedDots={resolvedDots}
             versions={versions}
             critiquing={critiquing}
+            persona={PERSONA_MAP[persona]}
+            onSetPersona={setPersona}
             onOpenNote={openNote}
             onCloseNote={closeNote}
             onPreviewOption={previewOption}

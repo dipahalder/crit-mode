@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react'
-import type { Dot } from '../types'
+import type { Dot, Persona, PersonaInfo } from '../types'
+import { PERSONAS } from '../data/personas'
 import { clean } from '../utils/clean'
+import Avatar from './Avatar'
 
 // The 320px comments rail (M6): a sticky header with a resolved/total pill and
 // one row per dot sorted by number (badge, region, status pill, two-line
@@ -72,6 +74,8 @@ export default function CommentsRail({
   openDot,
   resolvedDots = {},
   showComments,
+  persona,
+  onSetPersona,
   onToggleComments,
   onRowClick,
 }: {
@@ -79,6 +83,8 @@ export default function CommentsRail({
   openDot: string | null
   resolvedDots?: Record<string, string>
   showComments: boolean
+  persona: PersonaInfo
+  onSetPersona: (p: Persona) => void
   onToggleComments: () => void
   onRowClick: (id: string) => void
 }) {
@@ -106,9 +112,30 @@ export default function CommentsRail({
             </button>
           </div>
         </div>
-        <p style={{ fontSize: 12, lineHeight: 1.5, color: '#8e8e98', margin: '6px 0 0' }}>
-          {clean(showComments ? "Atelier's critique, pinned to the page. Click a note to open it on the design." : 'Comments hidden. Showing the clean design.')}
-        </p>
+        {showComments ? (
+          <>
+            {/* Persona switcher (M13): toggle the point of view. */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 11 }}>
+              {PERSONAS.map((p) => {
+                const active = p.id === persona.id
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => onSetPersona(p.id)}
+                    title={`${p.name}, ${p.role}`}
+                    style={{ padding: 0, border: 'none', background: 'none', cursor: 'pointer', borderRadius: '50%', outline: active ? `2px solid ${p.color}` : '2px solid transparent', outlineOffset: 2, opacity: active ? 1 : 0.45, transition: 'opacity .15s ease' }}
+                  >
+                    <Avatar persona={p} size={26} />
+                  </button>
+                )
+              })}
+            </div>
+            <p style={{ fontSize: 12, lineHeight: 1.5, color: '#8e8e98', margin: '9px 0 0' }}>{clean(`Critiquing as ${persona.name}, ${persona.role.toLowerCase()}.`)}</p>
+          </>
+        ) : (
+          <p style={{ fontSize: 12, lineHeight: 1.5, color: '#8e8e98', margin: '6px 0 0' }}>{clean('Comments hidden. Showing the clean design.')}</p>
+        )}
       </div>
       {showComments && (
       <div>
@@ -139,6 +166,12 @@ export default function CommentsRail({
                 {resolved ? '✓' : ''}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                  <Avatar persona={persona} size={16} />
+                  <span style={{ fontSize: 11, color: '#71717a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span style={{ fontWeight: 700, color: '#3f3f46' }}>{clean(persona.name)}</span> · {clean(persona.role)}
+                  </span>
+                </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
                   <span style={{ fontSize: 12.5, fontWeight: 700, color: '#27272a', whiteSpace: 'nowrap' }}>{clean(d.region)}</span>
                   <span style={{ ...statusBase, background: resolved ? '#e7f3ec' : '#f4f4f6', color: resolved ? '#3f8f5f' : '#a1a1aa' }}>

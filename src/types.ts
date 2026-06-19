@@ -18,6 +18,18 @@ export type Concept = 'product-led' | 'ritual-led' | 'origin-led'
 
 export type DotKind = 'text' | 'palette' | 'concept'
 
+// Critic personas (M13): the same page critiqued from four points of view.
+export type Persona = 'designer' | 'cd' | 'ceo' | 'user'
+
+export interface PersonaInfo {
+  id: Persona
+  name: string
+  role: string
+  initials: string
+  color: string
+  voice: string // priorities, layered onto the LLM system prompt
+}
+
 export type Screen = 'start' | 'workspace'
 
 // A layout calls register(field) and spreads the result onto the critiqued
@@ -83,6 +95,9 @@ export interface Dot {
   critique: string
   prompt: string
   options: Option[]
+  // Authored per-persona voices (M13). The base critique/prompt is the
+  // designer voice; other personas resolve to it when missing.
+  byPersona?: Partial<Record<Persona, { critique: string; prompt: string }>>
 }
 
 // version : { n, palette, headline, note }  // note = region that changed

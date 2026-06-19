@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import type { Brand, Dot, FieldKey, Option, Page, Palette, Preview, RegisterTarget, Version } from '../types'
+import type { Brand, Dot, FieldKey, Option, Page, Palette, Persona, PersonaInfo, Preview, RegisterTarget, Version } from '../types'
 import PageFrame from './PageFrame'
 import EmberLayout from './EmberLayout'
 import CadenceLayout from './CadenceLayout'
@@ -8,6 +8,7 @@ import MarenLayout from './MarenLayout'
 import CommentsRail from './CommentsRail'
 import Popover from './Popover'
 import LineageStrip from './LineageStrip'
+import CritiquingLabel from './CritiquingLabel'
 
 // The workspace: a dotted scroll canvas that centers the page frame and renders
 // the active brand's layout, a pin overlay anchored to each critiqued region by
@@ -73,6 +74,8 @@ export default function Workspace({
   resolvedDots,
   versions,
   critiquing,
+  persona,
+  onSetPersona,
   onOpenNote,
   onCloseNote,
   onPreviewOption,
@@ -88,6 +91,8 @@ export default function Workspace({
   resolvedDots: Record<string, string>
   versions: Version[]
   critiquing: boolean
+  persona: PersonaInfo
+  onSetPersona: (p: Persona) => void
   onOpenNote: (id: string) => void
   onCloseNote: () => void
   onPreviewOption: (next: Preview) => void
@@ -251,6 +256,7 @@ export default function Workspace({
             top={pop.top}
             currentValue={page[openDotData.field]}
             preview={preview}
+            persona={persona}
             onClose={onCloseNote}
             onPreviewOption={onPreviewOption}
             onAccept={(opt) => onAcceptOption(openDotData, opt)}
@@ -261,8 +267,8 @@ export default function Workspace({
         {/* "Critiquing..." floats over the dimmed design while the round loads. */}
         {critiquing && (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#fff', border: '1px solid #e6e6ec', borderRadius: 999, padding: '12px 20px', boxShadow: '0 18px 50px -16px rgba(20,16,30,.3)', fontSize: 14, fontWeight: 600, color: '#4f46e5' }}>
-              Critiquing the page
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#fff', border: '1px solid #e6e6ec', borderRadius: 999, padding: '12px 22px', boxShadow: '0 18px 50px -16px rgba(20,16,30,.3)', fontSize: 14, fontWeight: 600, color: '#4f46e5' }}>
+              <CritiquingLabel />
               <span style={{ display: 'inline-flex', gap: 3 }}>
                 {[0, 0.16, 0.32].map((d) => (
                   <span key={d} style={{ width: 5, height: 5, borderRadius: '50%', background: '#4f46e5', animation: 'ate-blink 1.2s ease-in-out infinite', animationDelay: `${d}s` }} />
@@ -273,7 +279,7 @@ export default function Workspace({
         )}
       </div>
 
-      <CommentsRail dots={dots} openDot={openDot} resolvedDots={resolvedDots} showComments={showComments} onToggleComments={toggleComments} onRowClick={handleOpen} />
+      <CommentsRail dots={dots} openDot={openDot} resolvedDots={resolvedDots} showComments={showComments} persona={persona} onSetPersona={onSetPersona} onToggleComments={toggleComments} onRowClick={handleOpen} />
     </div>
   )
 }

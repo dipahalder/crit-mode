@@ -27,8 +27,8 @@ export const paletteOptions: Option[] = [
 
 // The palette dot is identical across brands except for its critique, mirroring
 // mkPaletteDot() in the prototype. n:2, region 'Color & mood', field 'palette'.
-function paletteDot(critique: string): Dot {
-  return { id: 'palette', n: 2, kind: 'palette', region: 'Color & mood', field: 'palette', critique, prompt: 'Recolor the whole page:', options: paletteOptions }
+function paletteDot(critique: string, byPersona?: Dot['byPersona']): Dot {
+  return { id: 'palette', n: 2, kind: 'palette', region: 'Color & mood', field: 'palette', critique, prompt: 'Recolor the whole page:', options: paletteOptions, ...(byPersona ? { byPersona } : {}) }
 }
 
 const ember: Brand = {
@@ -58,6 +58,11 @@ const ember: Brand = {
     {
       id: 'headline', n: 1, kind: 'text', region: 'Hero headline', field: 'headline',
       critique: '"Coffee, delivered." sells the logistics, not the ritual. Lead with mood instead?', prompt: 'Pick a headline direction:',
+      byPersona: {
+        cd: { critique: 'Every coffee brand can say "delivered." Where is the line only Ember could write?', prompt: 'Find the braver headline:' },
+        ceo: { critique: '"Coffee, delivered." could sit on any subscription site. What does this headline claim that rivals cannot?', prompt: 'Stake out a position:' },
+        user: { critique: 'I read "Coffee, delivered." and still do not know why this one. What should I take away first?', prompt: 'Say it plainer:' },
+      },
       options: [
         { id: 'ritual', value: 'Your best morning, on repeat.', vibe: 'Warm · ritual', tag: 'Warm, ritual-led headlines' },
         { id: 'blunt', value: 'Single-origin. Stupidly fresh.', vibe: 'Playful · blunt', tag: 'Playful, blunt copy' },
@@ -67,6 +72,11 @@ const ember: Brand = {
     {
       id: 'subhead', n: 5, kind: 'text', region: 'Subhead voice', field: 'subhead',
       critique: 'The subhead just explains the product. What tone could it set instead?', prompt: 'Rewrite the subhead voice:',
+      byPersona: {
+        cd: { critique: 'The subhead lists facts where it could set a feeling. What is the line under the line?', prompt: 'Set the tone:' },
+        ceo: { critique: 'The subhead describes the product, not why us. What belief should it plant?', prompt: 'Say why us:' },
+        user: { critique: 'The subhead mostly repeats the headline in longer words. What would actually tell me more?', prompt: 'Add real detail:' },
+      },
       options: [
         { id: 'sensory', value: 'Roasted to order, shipped within a day, and tuned to how you actually brew.', vibe: 'Sensory · specific', tag: 'Sensory, specific copy' },
         { id: 'warm', value: 'A standing invitation to slow down for ten good minutes every morning.', vibe: 'Warm · unhurried', tag: 'Warm, unhurried voice' },
@@ -76,6 +86,11 @@ const ember: Brand = {
     {
       id: 'cta', n: 3, kind: 'text', region: 'Primary CTA', field: 'cta',
       critique: '"Start your subscription" is a commitment ask up front. Lower the stakes?', prompt: 'Try a different invitation:',
+      byPersona: {
+        cd: { critique: '"Start your subscription" is a transaction, not an invitation. What would make the first step feel like a moment?', prompt: 'Reframe the invitation:' },
+        ceo: { critique: 'Leading with "subscription" foregrounds commitment over value. What first step fits how people actually decide?', prompt: 'Lower the first step:' },
+        user: { critique: '"Start your subscription" feels like signing up for a bill. What could I do that feels lower risk?', prompt: 'Make it feel easy:' },
+      },
       options: [
         { id: 'taste', value: "Taste this month's roast", vibe: 'Low-stakes · sensory', tag: 'Low-commitment CTAs' },
         { id: 'ritual', value: 'Build my morning ritual', vibe: 'Aspirational', tag: 'Aspirational CTAs' },
@@ -85,16 +100,30 @@ const ember: Brand = {
     {
       id: 'image', n: 4, kind: 'text', region: 'Hero image', field: 'heroImg',
       critique: 'A flat-lay of beans is the expected shot. What story should the image tell?', prompt: 'Swap the hero image direction:',
+      byPersona: {
+        cd: { critique: 'A flat-lay of beans is the stock-photo default. What single image would only make sense for Ember?', prompt: 'Find the one true image:' },
+        ceo: { critique: 'The hero image reads as generic specialty coffee. What picture proves our difference at a glance?', prompt: 'Show the difference:' },
+        user: { critique: 'I cannot tell what I am buying from a beans flat-lay. What image would show me what I get?', prompt: 'Show me the product:' },
+      },
       options: [
         { id: 'pour', value: 'Pour-over in morning light', vibe: 'Ritual moment', tag: 'Lifestyle, in-use imagery' },
         { id: 'farm', value: 'Hands at the origin farm', vibe: 'Provenance', tag: 'Provenance, origin imagery' },
         { id: 'macro', value: 'Macro of a single roasted bean', vibe: 'Craft · macro', tag: 'Product macro imagery' },
       ],
     },
-    paletteDot('The mood reads safe and roastery-default. What feeling should the page lead with?'),
+    paletteDot('The mood reads safe and roastery-default. What feeling should the page lead with?', {
+      cd: { critique: 'The palette is the expected roastery brown. What mood would feel like Ember and no one else?', prompt: 'Choose a braver mood:' },
+      ceo: { critique: 'These colors look like every specialty roaster. What palette signals where we sit in the market?', prompt: 'Set the brand mood:' },
+      user: { critique: 'The colors feel calm but generic. What mood would make me trust this at a glance?', prompt: 'Pick the feeling:' },
+    }),
     {
       id: 'social', n: 6, kind: 'text', region: 'Social proof', field: 'social',
       critique: '"12,000 home baristas" is a vanity number. Could the proof be quieter and truer?', prompt: 'Choose what to prove:',
+      byPersona: {
+        cd: { critique: '"12,000 home baristas" is a number everyone claims. What proof would feel distinctly Ember?', prompt: 'Prove it with character:' },
+        ceo: { critique: 'A headcount is easy to copy. What proof point reinforces our positioning?', prompt: 'Pick the strategic proof:' },
+        user: { critique: 'A big number does not tell me if it is any good. What would make me trust the quality?', prompt: 'Earn my trust:' },
+      },
       options: [
         { id: 'press', value: 'Featured in Standart, Sprudge & Monocle', vibe: 'Editorial', tag: 'Editorial credibility' },
         { id: 'rating', value: '4.9 average across 2,300 reviews', vibe: 'Earned · specific', tag: 'Specific, earned proof' },
@@ -108,6 +137,11 @@ const ember: Brand = {
       id: 'concept', n: 7, kind: 'concept', region: 'Page concept', field: 'concept',
       critique: 'The page is built product-first, but Ember\'s real pull is the ritual and the origins. Should the whole page lead with a different story?',
       prompt: 'Reorganize the page around one idea:',
+      byPersona: {
+        cd: { critique: 'The page is organized like a catalog. What single idea could the whole layout be built around?', prompt: 'Pick the big idea:' },
+        ceo: { critique: 'The structure leads with product, not story. Which narrative best positions Ember?', prompt: 'Lead with the right story:' },
+        user: { critique: 'The page jumps between things. What one idea should the whole page be about?', prompt: 'Make it about one thing:' },
+      },
       options: [
         {
           id: 'product', value: 'product-led', vibe: 'Product-led', tag: 'Product-led layout',
