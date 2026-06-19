@@ -16,6 +16,10 @@ export type DotKind = 'text' | 'palette'
 
 export type Screen = 'start' | 'workspace'
 
+// A layout calls register(field) and spreads the result onto the critiqued
+// element so its bounding box can be measured for pin placement (M5).
+export type RegisterTarget = (field: FieldKey) => (el: HTMLElement | null) => void
+
 // A palette is a set of design tokens applied as CSS custom properties (M3).
 export interface Palette {
   bg: string

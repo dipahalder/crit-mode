@@ -1,4 +1,4 @@
-import type { Brand, Page } from '../types'
+import type { Brand, Page, RegisterTarget } from '../types'
 import { clean } from '../utils/clean'
 
 // Cadence's full layout, lifted from the CADENCE block in Atelier.dc.html:
@@ -11,7 +11,7 @@ import { clean } from '../utils/clean'
 const HERO_GRADIENT =
   'radial-gradient(135% 130% at 8% 4%,#7b78ff 0%,#635bff 30%,#3b2f8f 70%,#1b1540 100%)'
 
-export default function CadenceLayout({ brand: b, view }: { brand: Brand; view: Page }) {
+export default function CadenceLayout({ brand: b, view, register }: { brand: Brand; view: Page; register: RegisterTarget }) {
   return (
     <>
       {/* Gradient hero band (nav + hero) */}
@@ -31,11 +31,11 @@ export default function CadenceLayout({ brand: b, view }: { brand: Brand; view: 
         {/* Hero grid: copy + product mock */}
         <div style={{ display: 'grid', gridTemplateColumns: '1.02fr .98fr', gap: 30, alignItems: 'center', padding: '46px 44px 14px' }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.6px', color: 'rgba(255,255,255,.7)', marginBottom: 18 }}>{clean(b.eyebrow)}</div>
-            <h1 style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: 52, lineHeight: 1.02, letterSpacing: '-1.6px', margin: '0 0 18px', color: '#fff' }}>{clean(view.headline)}</h1>
-            <p style={{ fontSize: 16, lineHeight: 1.6, color: 'rgba(255,255,255,.84)', margin: '0 0 26px', maxWidth: 400 }}>{clean(view.subhead)}</p>
+            <div ref={register('palette')} style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.6px', color: 'rgba(255,255,255,.7)', marginBottom: 18 }}>{clean(b.eyebrow)}</div>
+            <h1 ref={register('headline')} style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: 52, lineHeight: 1.02, letterSpacing: '-1.6px', margin: '0 0 18px', color: '#fff' }}>{clean(view.headline)}</h1>
+            <p ref={register('subhead')} style={{ fontSize: 16, lineHeight: 1.6, color: 'rgba(255,255,255,.84)', margin: '0 0 26px', maxWidth: 400 }}>{clean(view.subhead)}</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#3b2f8f', background: '#fff', padding: '13px 22px', borderRadius: 10 }}>{clean(view.cta)}</span>
+              <span ref={register('cta')} style={{ fontSize: 14, fontWeight: 700, color: '#3b2f8f', background: '#fff', padding: '13px 22px', borderRadius: 10 }}>{clean(view.cta)}</span>
               <span style={{ fontSize: 14, fontWeight: 600, color: '#fff', display: 'flex', alignItems: 'center', gap: 7 }}>
                 {clean(b.ctaSecondary)} <span style={{ opacity: 0.7 }}>→</span>
               </span>
@@ -43,7 +43,7 @@ export default function CadenceLayout({ brand: b, view }: { brand: Brand; view: 
           </div>
 
           {/* Floating product UI mock (decorative); heroImg label sits in its header */}
-          <div style={{ position: 'relative', background: '#fff', borderRadius: 14, boxShadow: '0 30px 70px -20px rgba(10,8,40,.6)', overflow: 'hidden' }}>
+          <div ref={register('heroImg')} style={{ position: 'relative', background: '#fff', borderRadius: 14, boxShadow: '0 30px 70px -20px rgba(10,8,40,.6)', overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '11px 13px', borderBottom: '1px solid #eef0f6' }}>
               <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#e2e4ee' }} />
               <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#e2e4ee' }} />
@@ -79,7 +79,7 @@ export default function CadenceLayout({ brand: b, view }: { brand: Brand; view: 
 
       {/* Proof bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 38, padding: '22px 44px', background: 'var(--bg)', borderBottom: '1px solid var(--line)' }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sub)' }}>{clean(view.social)}</span>
+        <span ref={register('social')} style={{ fontSize: 12, fontWeight: 600, color: 'var(--sub)' }}>{clean(view.social)}</span>
         {b.proof.map((p) => (
           <span key={p} style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12, letterSpacing: '1px', color: 'var(--sub)', opacity: 0.55 }}>{clean(p)}</span>
         ))}

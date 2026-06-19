@@ -1,3 +1,4 @@
+import { forwardRef } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import type { Palette } from '../types'
 import { clean } from '../utils/clean'
@@ -43,17 +44,10 @@ const chromeDot = (background: string): CSSProperties => ({
   background,
 })
 
-export default function PageFrame({
-  pal,
-  url,
-  children,
-}: {
-  pal: Palette
-  url: string
-  children: ReactNode
-}) {
-  return (
-    <div style={frameStyle(pal)}>
+const PageFrame = forwardRef<HTMLDivElement, { pal: Palette; url: string; children: ReactNode }>(
+  function PageFrame({ pal, url, children }, ref) {
+    return (
+      <div ref={ref} style={frameStyle(pal)}>
       {/* Browser-chrome bar: three dots + a centered URL pill. */}
       <div
         style={{
@@ -83,7 +77,10 @@ export default function PageFrame({
           {clean(url)}
         </div>
       </div>
-      {children}
-    </div>
-  )
-}
+        {children}
+      </div>
+    )
+  },
+)
+
+export default PageFrame

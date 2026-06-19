@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import type { Brand, Page } from '../types'
+import type { Brand, Page, RegisterTarget } from '../types'
 import { clean } from '../utils/clean'
 
 // Maren's full layout, lifted from the MAREN block in Atelier.dc.html: a
@@ -9,7 +9,7 @@ import { clean } from '../utils/clean'
 // else from brand data. Every rendered string passes through clean()
 // (guardrail 4). No pins yet (M5).
 
-export default function MarenLayout({ brand: b, view }: { brand: Brand; view: Page }) {
+export default function MarenLayout({ brand: b, view, register }: { brand: Brand; view: Page; register: RegisterTarget }) {
   const nameCaps = b.nameCaps ?? b.name
   return (
     <>
@@ -28,14 +28,15 @@ export default function MarenLayout({ brand: b, view }: { brand: Brand; view: Pa
 
       {/* Centered hero */}
       <div style={{ padding: '54px 48px 44px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-        <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '2px', color: 'var(--accent)', marginBottom: 22 }}>{clean(b.eyebrow)}</div>
-        <h1 style={{ fontFamily: 'var(--display)', fontWeight: 'var(--dispWeight)' as CSSProperties['fontWeight'], fontSize: 58, lineHeight: 1.04, letterSpacing: 'var(--dispLs)', margin: '0 0 22px', maxWidth: 680 }}>{clean(view.headline)}</h1>
-        <p style={{ fontSize: 16.5, lineHeight: 1.62, color: 'var(--sub)', margin: '0 0 30px', maxWidth: 480 }}>{clean(view.subhead)}</p>
-        <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--accentInk)', background: 'var(--accent)', padding: '14px 30px', borderRadius: 999 }}>{clean(view.cta)}</span>
+        <div ref={register('palette')} style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '2px', color: 'var(--accent)', marginBottom: 22 }}>{clean(b.eyebrow)}</div>
+        <h1 ref={register('headline')} style={{ fontFamily: 'var(--display)', fontWeight: 'var(--dispWeight)' as CSSProperties['fontWeight'], fontSize: 58, lineHeight: 1.04, letterSpacing: 'var(--dispLs)', margin: '0 0 22px', maxWidth: 680 }}>{clean(view.headline)}</h1>
+        <p ref={register('subhead')} style={{ fontSize: 16.5, lineHeight: 1.62, color: 'var(--sub)', margin: '0 0 30px', maxWidth: 480 }}>{clean(view.subhead)}</p>
+        <span ref={register('cta')} style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--accentInk)', background: 'var(--accent)', padding: '14px 30px', borderRadius: 999 }}>{clean(view.cta)}</span>
       </div>
 
       {/* Wide hero image */}
       <div
+        ref={register('heroImg')}
         style={{
           position: 'relative',
           height: 330,
@@ -55,7 +56,7 @@ export default function MarenLayout({ brand: b, view }: { brand: Brand; view: Pa
 
       {/* Proof bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 34, padding: '26px 48px' }}>
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', fontStyle: 'italic', fontFamily: 'var(--display)' }}>{clean(view.social)}</span>
+        <span ref={register('social')} style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', fontStyle: 'italic', fontFamily: 'var(--display)' }}>{clean(view.social)}</span>
         {b.proof.map((p) => (
           <span key={p} style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11, letterSpacing: '1.5px', color: 'var(--sub)', opacity: 0.6 }}>{clean(p)}</span>
         ))}

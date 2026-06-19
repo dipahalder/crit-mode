@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import type { Brand, Page } from '../types'
+import type { Brand, Page, RegisterTarget } from '../types'
 import { clean } from '../utils/clean'
 
 // Ember's full layout, lifted from the EMBER block in Atelier.dc.html:
@@ -10,7 +10,7 @@ import { clean } from '../utils/clean'
 
 const SECTION_X = 44
 
-export default function EmberLayout({ brand: b, view }: { brand: Brand; view: Page }) {
+export default function EmberLayout({ brand: b, view, register }: { brand: Brand; view: Page; register: RegisterTarget }) {
   return (
     <>
       {/* Nav */}
@@ -47,10 +47,11 @@ export default function EmberLayout({ brand: b, view }: { brand: Brand; view: Pa
       {/* Split hero */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.06fr .94fr', gap: 0, alignItems: 'stretch', borderTop: '1px solid var(--line)' }}>
         <div style={{ padding: '48px 44px 52px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.6px', color: 'var(--accent)', marginBottom: 18 }}>
+          <div ref={register('palette')} style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.6px', color: 'var(--accent)', marginBottom: 18 }}>
             {clean(b.eyebrow)}
           </div>
           <h1
+            ref={register('headline')}
             style={{
               fontFamily: 'var(--display)',
               fontWeight: 'var(--dispWeight)' as CSSProperties['fontWeight'],
@@ -62,11 +63,11 @@ export default function EmberLayout({ brand: b, view }: { brand: Brand; view: Pa
           >
             {clean(view.headline)}
           </h1>
-          <p style={{ fontSize: 16, lineHeight: 1.6, color: 'var(--sub)', margin: '0 0 28px', maxWidth: 380 }}>
+          <p ref={register('subhead')} style={{ fontSize: 16, lineHeight: 1.6, color: 'var(--sub)', margin: '0 0 28px', maxWidth: 380 }}>
             {clean(view.subhead)}
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--accentInk)', background: 'var(--accent)', padding: '14px 24px', borderRadius: 10 }}>
+            <span ref={register('cta')} style={{ fontSize: 14, fontWeight: 700, color: 'var(--accentInk)', background: 'var(--accent)', padding: '14px 24px', borderRadius: 10 }}>
               {clean(view.cta)}
             </span>
             <span
@@ -84,6 +85,7 @@ export default function EmberLayout({ brand: b, view }: { brand: Brand; view: Pa
           </div>
         </div>
         <div
+          ref={register('heroImg')}
           style={{
             position: 'relative',
             minHeight: 440,
@@ -127,7 +129,7 @@ export default function EmberLayout({ brand: b, view }: { brand: Brand; view: Pa
           background: 'rgba(0,0,0,.018)',
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{clean(view.social)}</span>
+        <span ref={register('social')} style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{clean(view.social)}</span>
         <span style={{ flex: 1 }} />
         {b.proof.map((p) => (
           <span key={p} style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11, letterSpacing: '1px', color: 'var(--sub)', opacity: 0.7 }}>
