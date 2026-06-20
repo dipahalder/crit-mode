@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Brand, Dot, FieldKey, Option, Page, Palette, Persona, PersonaInfo, Preview, RegisterTarget, Version } from '../types'
 import { clean } from '../utils/clean'
@@ -277,16 +277,28 @@ export default function Workspace({
   const orderIndex = new Map(railOrder.map((id, i) => [id, i]))
   const railDots = [...dots].sort((a, b) => (orderIndex.get(a.id) ?? 1e9) - (orderIndex.get(b.id) ?? 1e9))
 
+  // The brand layout is hundreds of nodes, so memoize it on the values that
+  // actually change its output. This keeps interaction state (opening a note,
+  // pin/popover positions, scroll-driven re-measures) from re-rendering the whole
+  // page on every event, which was blocking paint (INP). register/frameRef are
+  // stable; view changes only on preview, pal on palette.
+  const pageContent = useMemo(
+    () => (
+      <PageFrame ref={frameRef} pal={pal} url={brand.url} loading={critiquing || personaSwitching}>
+        {brand.key === 'ember' && <EmberLayout brand={brand} view={view} register={register} />}
+        {brand.key === 'cadence' && <CadenceLayout brand={brand} view={view} register={register} />}
+        {brand.key === 'maren' && <MarenLayout brand={brand} view={view} register={register} />}
+      </PageFrame>
+    ),
+    [brand, view, pal, critiquing, personaSwitching, register],
+  )
+
   return (
     <div style={workspaceStyle}>
       <LineageStrip versions={versions} />
       <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex' }}>
         <div ref={canvasRef} style={canvasStyle}>
-        <PageFrame ref={frameRef} pal={pal} url={brand.url} loading={critiquing || personaSwitching}>
-          {brand.key === 'ember' && <EmberLayout brand={brand} view={view} register={register} />}
-          {brand.key === 'cadence' && <CadenceLayout brand={brand} view={view} register={register} />}
-          {brand.key === 'maren' && <MarenLayout brand={brand} view={view} register={register} />}
-        </PageFrame>
+        {pageContent}
 
         {/* Pin overlay (canvas-content coords; scrolls with the page). Resolved
             dots drop their pin — the design stays clean once a note is done. */}
