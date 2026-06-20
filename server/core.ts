@@ -10,7 +10,9 @@ import type { BrandKey, CritiqueResponse, FieldKey, Persona } from '../src/types
 // callers fall back to the static dots on any failure, so the demo never depends
 // on the API succeeding. The Anthropic key stays server-side in both deployments.
 
-export const MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-4-8'
+// Sonnet 4.6 is the default for faster critique responses; set ANTHROPIC_MODEL
+// to override (e.g. claude-opus-4-8 for higher-quality, slower critiques).
+export const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6'
 
 export const BRAND_KEYS: BrandKey[] = ['ember', 'cadence', 'maren']
 export const FIELD_KEYS: FieldKey[] = ['headline', 'subhead', 'cta', 'heroImg', 'social', 'palette']
