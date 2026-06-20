@@ -132,6 +132,8 @@ export default function Workspace({
   const refCbs = useRef(new Map<FieldKey, (el: HTMLElement | null) => void>())
   const [measured, setMeasured] = useState<Measured[]>([])
   const [frameBounds, setFrameBounds] = useState<{ left: number; width: number } | null>(null)
+  // Frozen rail row order (ids top-to-bottom); only updated when not previewing.
+  const [railOrder, setRailOrder] = useState<string[]>([])
   // Hide-comments toggle (top of the rail): hides pins, popover, and rows.
   const [showComments, setShowComments] = useState(true)
   const toggleComments = useCallback(() => {
@@ -260,11 +262,20 @@ export default function Workspace({
     pop = { left: Math.max(8, left), top: Math.max(8, top) }
   }
 
-  // Pin positions with overlaps nudged apart, and rail rows ordered top-to-bottom
-  // by where each pin actually sits (M14: number/order in DOM order).
+  // Pin positions with overlaps nudged apart. Pins are anchored to their element
+  // so they track the page during a preview.
   const pinPositions = nudgePins(measured.map((m) => ({ id: m.id, x: m.left + m.w / 2, y: m.top + m.h / 2 })))
-  const topById = new Map(measured.map((m) => [m.id, m.top]))
-  const railDots = [...dots].sort((a, b) => (topById.get(a.id) ?? 1e9) - (topById.get(b.id) ?? 1e9))
+
+  // Rail rows are ordered top-to-bottom by where each pin sits (M14), but the
+  // order is FROZEN while a preview is active so trying on an option (which can
+  // reflow the page) doesn't reshuffle the comment list under the user.
+  useLayoutEffect(() => {
+    if (preview) return
+    const order = [...measured].sort((a, b) => a.top - b.top).map((m) => m.id)
+    setRailOrder((prev) => (prev.length === order.length && prev.every((id, i) => id === order[i]) ? prev : order))
+  }, [measured, preview])
+  const orderIndex = new Map(railOrder.map((id, i) => [id, i]))
+  const railDots = [...dots].sort((a, b) => (orderIndex.get(a.id) ?? 1e9) - (orderIndex.get(b.id) ?? 1e9))
 
   return (
     <div style={workspaceStyle}>
