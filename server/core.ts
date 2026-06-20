@@ -217,7 +217,7 @@ Return JSON only, shaped exactly: {"critique": string, "prompt": string, "option
 // The static critiques for a brand, shaped for /critiques (the fallback).
 export function staticCritiques(brand: BrandKey) {
   return brands[brand].dots
-    .filter((d) => d.field !== 'concept')
+    .filter((d) => d.kind !== 'concept')
     .map((d) => ({
       targetId: d.field,
       critique: clean(d.critique),
@@ -240,63 +240,85 @@ function cleanOptions(rawOptions: unknown, field: FieldKey) {
   return opts.slice(0, 3)
 }
 
-// The model chooses which regions to critique (or critiques the given targets),
-// never coordinates. Returns [{targetId, critique, prompt, options}].
-export async function generateMany(brand: BrandKey, pageModel: Record<string, unknown>, persona: Persona | undefined, inventory: unknown, targets: unknown) {
-  const b = brands[brand]
-  const fieldDots = b.dots.filter((d) => d.field !== 'concept')
-  const validFields = new Set<string>(fieldDots.map((d) => d.field))
-  const p = PERSONA_MAP[persona as Persona] ?? PERSONA_MAP.designer
+// Per-region option spec for the palette region (color moods with real hex).
+const PALETTE_SPEC = `This region is color and mood. Each option is a color mood, shaped {"value": short mood name, "vibe": short descriptor, "bg": "#rrggbb", "ink": "#rrggbb", "accent": "#rrggbb", "hero": "#rrggbb", "display": "serif" or "sans"} with four REAL hex colors that fit THIS brand and product (botanical skincare leans greens and naturals; coffee leans warm earth tones; a productivity tool leans cooler or bolder tech tones). bg is the page background, ink the body text, accent the buttons and highlights, hero the image tint. Never omit a color. Example: {"value":"Sage & Clay","vibe":"Soft, herbal","bg":"#f7f3ec","ink":"#3a3a32","accent":"#8a9a7b","hero":"#dbcbb6","display":"serif"}.`
 
+// Fast first pass: the persona picks WHICH regions are worth its critique. Small
+// output, so it returns quickly; the per-region critiques then run in parallel.
+async function selectRegions(brand: BrandKey, pageModel: Record<string, unknown>, persona: Persona | undefined, inventory: unknown): Promise<FieldKey[]> {
+  const b = brands[brand]
+  const validFields = new Set<string>(b.dots.filter((d) => d.kind !== 'concept').map((d) => d.field))
+  const p = PERSONA_MAP[persona as Persona] ?? PERSONA_MAP.designer
   const inv = Array.isArray(inventory) && inventory.length
     ? (inventory as Array<Record<string, unknown>>)
-    : fieldDots.map((d) => ({ id: d.field, kind: d.kind, section: d.region, text: String(pageModel?.[d.field] ?? '') }))
-
-  const pinned = Array.isArray(targets) ? (targets as string[]).filter((t) => validFields.has(t)) : []
-  const selection = pinned.length
-    ? `Critique exactly these regions, by id: ${pinned.join(', ')}.`
-    : 'Choose the 3 to 5 regions THIS point of view would most want to change, and skip the ones it would not care about. A different critic should land on a different set of regions and raise different concerns, so choose what is distinctive to your lens, not the obvious universal picks.'
+    : b.dots.filter((d) => d.kind !== 'concept').map((d) => ({ id: d.field, kind: d.kind, section: d.region, text: String(pageModel?.[d.field] ?? '') }))
 
   const system = `You are ${p.voice}
 
-You are reviewing a whole landing page and deciding what is worth commenting on, strictly from this point of view. Different critics notice different things: raise the concerns this lens raises, in its vocabulary, and ignore what it would not care about. Do not fall back to a generic, all-purpose design critique.
+You are scanning a whole landing page and choosing only which regions are worth your critique, strictly from this point of view. Different critics care about different regions.`
+  const user = `Brand: ${b.name} (${b.category}).
+Regions you may pick (id, kind, section, current text):
+${inv.map((it) => `- ${it.id} [${it.kind}] (${it.section}): ${JSON.stringify(it.text)}`).join('\n')}
+
+Choose the 3 to 5 regions THIS point of view would most want to change, distinctive to your lens, not the obvious universal picks.
+Return JSON only: {"regions": ["id", ...]} using only ids from the list above.`
+
+  const message = await getClient()!.messages.create({ model: MODEL, max_tokens: 256, system, messages: [{ role: 'user', content: user }] })
+  const text = message.content.filter((blk): blk is Anthropic.TextBlock => blk.type === 'text').map((blk) => blk.text).join('')
+  const parsed = JSON.parse(stripFences(text)) as { regions?: unknown }
+  const seen = new Set<string>()
+  const out: FieldKey[] = []
+  if (Array.isArray(parsed.regions)) {
+    for (const r of parsed.regions) {
+      if (typeof r === 'string' && validFields.has(r) && !seen.has(r)) {
+        seen.add(r)
+        out.push(r as FieldKey)
+      }
+      if (out.length >= 5) break
+    }
+  }
+  if (out.length === 0) throw new Error('no regions chosen')
+  return out
+}
+
+// Critique ONE region, persona-voiced. These run concurrently (see generateMany)
+// so the round's wall-clock is ~the slowest single region, not the sum.
+async function generateOne(brand: BrandKey, region: FieldKey, pageModel: Record<string, unknown>, persona: Persona | undefined) {
+  const b = brands[brand]
+  const dot = b.dots.find((d) => d.field === region)!
+  const p = PERSONA_MAP[persona as Persona] ?? PERSONA_MAP.designer
+
+  const system = `You are ${p.voice}
+
+You are critiquing one region of a landing page, strictly from this point of view. Raise the concern this lens raises, in its vocabulary. Do not fall back to a generic, all-purpose design critique.
 
 ${CRITIQUE_RULES}`
   const user = `Brand: ${b.name} (${b.category}).
-Regions you may critique (id, kind, section, current text):
-${inv.map((it) => `- ${it.id} [${it.kind}] (${it.section}): ${JSON.stringify(it.text)}`).join('\n')}
+Region to critique: id "${region}", section "${dot.region}", current value ${JSON.stringify(pageModel?.[region])}.
 Full current page model: ${JSON.stringify(pageModel)}.
 
-${selection}
-For each chosen region write one critique, a short prompt, and 2 to 3 taste-different options.
-Options for EVERY region except "palette" are shaped {"value": string, "vibe": string}.
-The "palette" region is the exception and is critical: its options are color moods, NOT {value, vibe}. Each palette option MUST be shaped {"value": short mood name, "vibe": short descriptor, "bg": "#rrggbb", "ink": "#rrggbb", "accent": "#rrggbb", "hero": "#rrggbb", "display": "serif" or "sans"} with four REAL hex colors that fit THIS brand and product (botanical skincare leans greens and naturals; coffee leans warm earth tones; a productivity tool leans cooler or bolder tech tones). bg is the page background, ink the body text, accent the buttons and highlights, hero the image tint. Never emit a palette option missing any of bg, ink, accent, or hero. Example palette option: {"value":"Sage & Clay","vibe":"Soft, herbal, natural","bg":"#f7f3ec","ink":"#3a3a32","accent":"#8a9a7b","hero":"#dbcbb6","display":"serif"}.
-Return JSON only: {"critiques":[{"targetId":string,"critique":string,"prompt":string,"options":[ ... ]}]}.`
+Write one critique, a short prompt, and 2 to 3 taste-different options for THIS region.
+${region === 'palette' ? PALETTE_SPEC : 'Each option is shaped {"value": string, "vibe": string}.'}
+Return JSON only: {"critique": string, "prompt": string, "options": [ ... ]}.`
 
-  const message = await getClient()!.messages.create({ model: MODEL, max_tokens: 2048, system, messages: [{ role: 'user', content: user }] })
+  const message = await getClient()!.messages.create({ model: MODEL, max_tokens: 700, system, messages: [{ role: 'user', content: user }] })
   const text = message.content.filter((blk): blk is Anthropic.TextBlock => blk.type === 'text').map((blk) => blk.text).join('')
-  const parsed = JSON.parse(stripFences(text)) as { critiques?: unknown }
-  if (!parsed || !Array.isArray(parsed.critiques)) throw new Error('no critiques array')
+  const c = JSON.parse(stripFences(text)) as Record<string, unknown>
+  if (typeof c.critique !== 'string' || !c.critique.trim()) throw new Error('bad critique')
+  if (typeof c.prompt !== 'string' || !c.prompt.trim()) throw new Error('bad prompt')
+  const options = region === 'palette' ? cleanPaletteOptions(c.options) : cleanOptions(c.options, region)
+  return { targetId: region as string, critique: clean(c.critique), prompt: clean(c.prompt), options }
+}
 
-  const seen = new Set<string>()
-  const out: Array<{ targetId: string; critique: string; prompt: string; options: unknown }> = []
-  for (const raw of parsed.critiques) {
-    const c = raw as Record<string, unknown>
-    const targetId = c.targetId
-    // Drop unknown/duplicate targets and malformed entries.
-    if (typeof targetId !== 'string' || !validFields.has(targetId) || seen.has(targetId)) continue
-    if (typeof c.critique !== 'string' || !c.critique.trim()) continue
-    if (typeof c.prompt !== 'string' || !c.prompt.trim()) continue
-    let options
-    try {
-      options = targetId === 'palette' ? cleanPaletteOptions(c.options) : cleanOptions(c.options, targetId as FieldKey)
-    } catch {
-      continue
-    }
-    seen.add(targetId)
-    out.push({ targetId, critique: clean(c.critique), prompt: clean(c.prompt), options })
-    if (out.length >= 7) break // enforce the cap
-  }
+// One round, parallelized: pick the regions (or use the given targets), then
+// critique each region concurrently. A failed region is dropped, not fatal.
+export async function generateMany(brand: BrandKey, pageModel: Record<string, unknown>, persona: Persona | undefined, inventory: unknown, targets: unknown) {
+  const validFields = new Set<string>(brands[brand].dots.filter((d) => d.kind !== 'concept').map((d) => d.field))
+  const pinned = Array.isArray(targets) ? (targets as string[]).filter((t) => validFields.has(t)) : []
+  const chosen = pinned.length ? (pinned.slice(0, 7) as FieldKey[]) : await selectRegions(brand, pageModel, persona, inventory)
+
+  const settled = await Promise.all(chosen.map((region) => generateOne(brand, region, pageModel, persona).catch(() => null)))
+  const out = settled.filter((x): x is NonNullable<typeof x> => x !== null)
   if (out.length === 0) throw new Error('no valid critiques')
   return out
 }

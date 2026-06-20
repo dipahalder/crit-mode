@@ -76,13 +76,13 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [persona, setPersona] = useState<Persona>('designer')
   // Why the current fetch is running, so the UI can react differently: 'initial'
-  // (brand pick, full overlay), 'persona' (switch perspective, hide comments and
-  // reload), 'accept' (page edit, skeleton the text in place).
-  const [loadKind, setLoadKind] = useState<'initial' | 'persona' | 'accept'>('initial')
-  // The regions to re-critique on an Accept refetch, so pins stay stable while
-  // iterating. Cleared on brand pick and persona switch so the LLM chooses fresh
-  // targets (different perspectives critique different regions).
-  const pinnedTargetsRef = useRef<string[] | null>(null)
+  // (brand pick, full overlay) or 'persona' (switch perspective, hide comments
+  // and reload). Accept does not refetch.
+  const [loadKind, setLoadKind] = useState<'initial' | 'persona'>('initial')
+  // Latest page, read inside the fetch effect without making `page` a dependency,
+  // so committing an Accept (which mutates page) never triggers a new round.
+  const pageRef = useRef(page)
+  pageRef.current = page
   // Generation counter so only the latest fetch round applies its results.
   const genRef = useRef(0)
 
@@ -99,7 +99,6 @@ export default function App() {
     setVersions([{ n: 1, palette: br.palKey, headline: br.defaults.headline, note: 'Starting point' }])
     setOpenDot(null)
     setPreview(null)
-    pinnedTargetsRef.current = null // new brand: let the LLM choose fresh targets
     setLoadKind('initial')
     setRound(null)
     setScreen('workspace')
@@ -107,7 +106,6 @@ export default function App() {
   function switchBrand() {
     setOpenDot(null)
     setPreview(null)
-    pinnedTargetsRef.current = null
     setRound(null)
     setScreen('start')
   }
@@ -118,7 +116,6 @@ export default function App() {
     if (p === persona) return
     setLoadKind('persona')
     setLoading(true) // hide comments + show the overlay immediately, no flash
-    pinnedTargetsRef.current = null // fresh targets for the new perspective
     setOpenDot(null) // an open popover would point at a soon-to-change region
     setPreview(null)
     setPersona(p)
@@ -147,7 +144,7 @@ export default function App() {
     // Choosing a static (keyed) palette clears any dynamic tokens so it applies.
     if (dot.field === 'palette' && !opt.patch) newPage = { ...newPage, paletteTokens: undefined }
     const chosen = dot.field === 'palette' ? `${opt.vibe} palette` : dot.kind === 'concept' ? `${opt.vibe} layout` : opt.value
-    setLoadKind('accept') // the page-change refetch skeletons text in place
+    // Accept does not refetch: it resolves this one dot and leaves the rest as-is.
     setPage(newPage)
     setResolvedDots((r) => ({ ...r, [dot.id]: chosen }))
     setVersions((v) => [...v, { n: v.length + 1, palette: newPage.palette, paletteTokens: newPage.paletteTokens, headline: newPage.headline, note: dot.region }])
@@ -157,17 +154,18 @@ export default function App() {
 
   const brand = brands[activeBrand]
 
-  // M14: one round where the LLM chooses which regions to critique. On brand pick
-  // and persona switch it chooses fresh (different pins/regions per perspective);
-  // on Accept it re-critiques the same pinned targets so pins stay stable. On any
-  // failure the round falls back to the static set. Debounced + abortable +
-  // generation-tagged.
+  // M14: one round where the LLM chooses which regions to critique, fresh per
+  // brand pick and per persona switch (different pins/regions per perspective).
+  // Accept does NOT refetch (page is read via pageRef, not a dependency), so
+  // committing an option just resolves that dot. On any failure the round falls
+  // back to the static set. Debounced + abortable + generation-tagged.
   useEffect(() => {
     if (screen !== 'workspace') return
+    const pageModel = pageRef.current
     // Structural dots (concept, heroLayout) are curated, never LLM-chosen.
     const editable = brands[activeBrand].dots.filter((d) => d.kind !== 'concept')
     if (editable.length === 0) return
-    const inventory = editable.map((d) => ({ id: d.field, kind: INV_KIND[d.field], section: d.region, text: String(page[d.field] ?? '') }))
+    const inventory = editable.map((d) => ({ id: d.field, kind: INV_KIND[d.field], section: d.region, text: String(pageModel[d.field] ?? '') }))
     const gen = ++genRef.current
     setLoading(true)
     const ctrl = new AbortController()
@@ -178,7 +176,7 @@ export default function App() {
         const r = await fetch('/critiques', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ brand: activeBrand, pageModel: page, persona, inventory, targets: pinnedTargetsRef.current ?? undefined }),
+          body: JSON.stringify({ brand: activeBrand, pageModel, persona, inventory }),
           signal: ctrl.signal,
         })
         if (!r.ok) throw new Error(`status ${r.status}`)
@@ -195,11 +193,9 @@ export default function App() {
           if (targets.length) result = { source: 'live', persona, byField, targets }
         }
       } catch {
-        // server down / aborted: fall back to the static six.
+        // server down / aborted: fall back to the static set.
       }
       if (gen !== genRef.current) return // superseded
-      // Pin the chosen regions so a later Accept refetch keeps the same pins.
-      pinnedTargetsRef.current = result.targets
       setRound(result)
       setLoading(false)
     }, 250)
@@ -207,16 +203,14 @@ export default function App() {
       clearTimeout(timer)
       ctrl.abort()
     }
-  }, [page, activeBrand, screen, persona])
+  }, [activeBrand, screen, persona])
 
   // Loading treatments:
   // - critiquing: the very first round (brand pick), full-page overlay.
   // - personaSwitching: a perspective change, hide the comments and reload (the
   //   new persona picks its own regions), keeping the switcher visible.
-  // - refreshing: an Accept page-edit refetch, skeleton the text in place.
   const critiquing = loading && round === null
   const personaSwitching = loading && round !== null && loadKind === 'persona'
-  const refreshing = loading && round !== null && loadKind === 'accept'
   // Render the chosen targets plus the curated concept dots, resolved to the
   // current persona's voice (live critique wins, else authored copy). Hidden
   // entirely on the initial load and while switching perspective.
@@ -263,7 +257,6 @@ export default function App() {
             versions={versions}
             critiquing={critiquing}
             personaSwitching={personaSwitching}
-            refreshing={refreshing}
             liveState={liveState}
             persona={PERSONA_MAP[persona]}
             onSetPersona={changePersona}

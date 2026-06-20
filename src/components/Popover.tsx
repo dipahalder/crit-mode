@@ -28,7 +28,6 @@ export default function Popover({
   currentValue,
   preview,
   persona,
-  refreshing,
   onClose,
   onPreviewOption,
   onAccept,
@@ -39,7 +38,6 @@ export default function Popover({
   currentValue: string
   preview: Preview | null
   persona: PersonaInfo
-  refreshing: boolean
   onClose: () => void
   onPreviewOption: (next: Preview) => void
   onAccept: (opt: Option) => void
@@ -86,17 +84,7 @@ export default function Popover({
         <span style={{ fontSize: 12.5, fontWeight: 700, color: '#27272a' }}>{clean(persona.role)}</span>
       </div>
 
-      {refreshing ? (
-        // The critique is being regenerated for this persona: skeleton, never the
-        // authored fallback text reading as the final answer.
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, margin: '0 0 4px' }}>
-          <span className="ate-skeleton" style={{ height: 11, width: '100%' }} />
-          <span className="ate-skeleton" style={{ height: 11, width: '94%' }} />
-          <span className="ate-skeleton" style={{ height: 11, width: '60%' }} />
-        </div>
-      ) : (
-        <p style={{ fontSize: 14.5, lineHeight: 1.5, color: '#27272a', margin: '0 0 4px', fontWeight: 500 }}>{clean(dot.critique)}</p>
-      )}
+      <p style={{ fontSize: 14.5, lineHeight: 1.5, color: '#27272a', margin: '0 0 4px', fontWeight: 500 }}>{clean(dot.critique)}</p>
       <div style={{ fontSize: 11.5, color: '#a1a1aa', margin: '12px 0 9px', fontWeight: 600 }}>{clean(dot.prompt)}</div>
 
       {previewingThisDot && (

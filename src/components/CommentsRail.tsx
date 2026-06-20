@@ -78,7 +78,6 @@ export default function CommentsRail({
   resolvedDots = {},
   showComments,
   critiquing,
-  refreshing,
   liveState,
   persona,
   onSetPersona,
@@ -90,7 +89,6 @@ export default function CommentsRail({
   resolvedDots?: Record<string, string>
   showComments: boolean
   critiquing: boolean
-  refreshing: boolean
   liveState: 'live' | 'loading' | 'static'
   persona: PersonaInfo
   onSetPersona: (p: Persona) => void
@@ -162,7 +160,7 @@ export default function CommentsRail({
                 )
               })}
             </div>
-            <p style={{ fontSize: 12, lineHeight: 1.5, color: '#8e8e98', margin: '11px 0 0' }}>{clean(`Critique from the simulated perspective of a ${persona.role.toLowerCase()}.`)}</p>
+            <p style={{ fontSize: 12, lineHeight: 1.5, color: '#8e8e98', margin: '11px 0 0' }}>{clean(`From the simulated perspective of a ${persona.role.toLowerCase()}.`)}</p>
           </>
         ) : null}
       </div>
@@ -200,14 +198,7 @@ export default function CommentsRail({
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#18181b', letterSpacing: '-0.1px', whiteSpace: 'nowrap' }}>{clean(d.region)}</span>
                   <span style={{ ...statusBase, color: resolved ? '#3f8f5f' : '#a1a1aa', border: `0.5px solid ${resolved ? '#bfe0cc' : '#e4e4e9'}` }}>{resolved ? 'Resolved' : 'Open'}</span>
                 </div>
-                {refreshing && !resolved ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '2px 0' }}>
-                    <span className="ate-skeleton" style={{ height: 9, width: '100%' }} />
-                    <span className="ate-skeleton" style={{ height: 9, width: '72%' }} />
-                  </div>
-                ) : (
-                  <div style={clamp2}>{clean(d.critique)}</div>
-                )}
+                <div style={clamp2}>{clean(d.critique)}</div>
                 {resolved && (
                   <div style={{ fontSize: 11.5, marginTop: 6, display: 'flex', gap: 5, alignItems: 'baseline' }}>
                     <span style={{ color: '#3f8f5f', fontWeight: 700 }}>→</span>

@@ -99,7 +99,6 @@ export default function Workspace({
   versions,
   critiquing,
   personaSwitching,
-  refreshing,
   liveState,
   persona,
   onSetPersona,
@@ -119,7 +118,6 @@ export default function Workspace({
   versions: Version[]
   critiquing: boolean
   personaSwitching: boolean
-  refreshing: boolean
   liveState: 'live' | 'loading' | 'static'
   persona: PersonaInfo
   onSetPersona: (p: Persona) => void
@@ -296,7 +294,6 @@ export default function Workspace({
             currentValue={page[openDotData.field]}
             preview={preview}
             persona={persona}
-            refreshing={refreshing}
             onClose={onCloseNote}
             onPreviewOption={onPreviewOption}
             onAccept={(opt) => onAcceptOption(openDotData, opt)}
@@ -320,7 +317,7 @@ export default function Workspace({
         )}
       </div>
 
-      <CommentsRail dots={railDots} openDot={openDot} resolvedDots={resolvedDots} showComments={showComments} critiquing={critiquing} refreshing={refreshing} liveState={liveState} persona={persona} onSetPersona={onSetPersona} onToggleComments={toggleComments} onRowClick={handleOpen} />
+      <CommentsRail dots={railDots} openDot={openDot} resolvedDots={resolvedDots} showComments={showComments} critiquing={critiquing} liveState={liveState} persona={persona} onSetPersona={onSetPersona} onToggleComments={toggleComments} onRowClick={handleOpen} />
     </div>
   )
 }
