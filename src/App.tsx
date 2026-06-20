@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { brands, palettes } from './data/brands'
-import { PERSONA_MAP } from './data/personas'
+import { PERSONA_MAP, PERSONA_FOCUS } from './data/personas'
 import type { BrandKey, CritiqueResponse, Dot, FieldKey, Option, Page, Persona, Preview, Screen, Version } from './types'
 import { clean } from './utils/clean'
 import TopBar from './components/TopBar'
@@ -162,21 +162,26 @@ export default function App() {
   useEffect(() => {
     if (screen !== 'workspace') return
     const pageModel = pageRef.current
-    // Structural dots (concept, heroLayout) are curated, never LLM-chosen.
+    // Structural dots (concept, heroLayout) are curated, never LLM-critiqued.
     const editable = brands[activeBrand].dots.filter((d) => d.kind !== 'concept')
     if (editable.length === 0) return
+    // This persona's editable focus regions: critique exactly these in parallel,
+    // so each perspective lands on its own set of pins (different concerns ->
+    // different dot positions).
+    const editableFields = new Set(editable.map((d) => d.field))
+    const focusEditable = PERSONA_FOCUS[persona].filter((f) => editableFields.has(f))
     const inventory = editable.map((d) => ({ id: d.field, kind: INV_KIND[d.field], section: d.region, text: String(pageModel[d.field] ?? '') }))
     const gen = ++genRef.current
     setLoading(true)
     const ctrl = new AbortController()
     const timer = setTimeout(async () => {
-      const fallback: Round = { source: 'fallback', persona, byField: {}, targets: editable.map((d) => d.field) }
+      const fallback: Round = { source: 'fallback', persona, byField: {}, targets: focusEditable }
       let result: Round = fallback
       try {
         const r = await fetch('/critiques', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ brand: activeBrand, pageModel, persona, inventory }),
+          body: JSON.stringify({ brand: activeBrand, pageModel, persona, inventory, targets: focusEditable }),
           signal: ctrl.signal,
         })
         if (!r.ok) throw new Error(`status ${r.status}`)
@@ -211,13 +216,15 @@ export default function App() {
   //   new persona picks its own regions), keeping the switcher visible.
   const critiquing = loading && round === null
   const personaSwitching = loading && round !== null && loadKind === 'persona'
-  // Render the chosen targets plus the curated concept dots, resolved to the
-  // current persona's voice (live critique wins, else authored copy). Hidden
-  // entirely on the initial load and while switching perspective.
+  // Render exactly this persona's focus regions (editable + structural), resolved
+  // to the current persona's voice (live critique wins, else authored copy).
+  // Switching persona swaps the whole set, so the pins move. Hidden entirely on
+  // the initial load and while switching perspective.
+  const focus = PERSONA_FOCUS[persona]
   const dots =
     critiquing || personaSwitching || !round
       ? []
-      : brand.dots.filter((d) => d.kind === 'concept' || round.targets.includes(d.field)).map((d) => mergeDot(d, round.persona === persona ? round.byField[d.field] : undefined, persona))
+      : brand.dots.filter((d) => focus.includes(d.field)).map((d) => mergeDot(d, round.persona === persona ? round.byField[d.field] : undefined, persona))
 
   // Derived render model (guardrail 1): during a preview, render from view, not
   // the committed page, so the try-on is visible without committing. A page-level

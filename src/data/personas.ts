@@ -1,4 +1,4 @@
-import type { Persona, PersonaInfo } from '../types'
+import type { FieldKey, Persona, PersonaInfo } from '../types'
 
 // The four critics (M13). `voice` is the priorities string layered onto the LLM
 // system prompt; the others drive the switcher and the attribution chips.
@@ -36,3 +36,19 @@ export const PERSONAS: PersonaInfo[] = [
 ]
 
 export const PERSONA_MAP = Object.fromEntries(PERSONAS.map((p) => [p.id, p])) as Record<Persona, PersonaInfo>
+
+// The regions each persona cares about, so switching perspective visibly moves
+// the pins (different concerns, different dot positions). Intentionally divergent
+// rather than overlapping on the obvious universal picks. May include structural
+// fields (concept, heroLayout); those render from authored copy, the editable
+// fields are critiqued live. Every brand has a dot for all of these.
+export const PERSONA_FOCUS: Record<Persona, FieldKey[]> = {
+  // Craft and composition: layout geometry, color, image, type measure.
+  designer: ['heroLayout', 'palette', 'heroImg', 'subhead'],
+  // The big idea and art direction: the concept plus the expressive surfaces.
+  cd: ['concept', 'headline', 'heroImg', 'palette'],
+  // Positioning and proof: the strategic concept, the claim, the proof, the ask.
+  ceo: ['concept', 'headline', 'social', 'cta'],
+  // Plain comprehension and trust: read the words, the ask, and the proof.
+  user: ['headline', 'subhead', 'cta', 'social'],
+}
