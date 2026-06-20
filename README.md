@@ -1,15 +1,44 @@
-# Design Crit Mode (Atelier)
+# Design Crit Mode
 
-A focused tool for iterating on a landing page by **reacting, not prompting**.
-Numbered feedback pins sit on regions of a rendered page. Tapping a pin opens a
-popover with a staff-level design critique plus a fan-out of 2 to 4 genuinely
-different alternatives. Tapping an option previews it live on the page; Accept
-commits it and appends a version to a read-only lineage.
+Live: https://crit-mode-ant.vercel.app
 
-Core thesis: you do not know what you want until you see it, so the value is
-discernment, not a generate button.
+Design Crit Mode is a promptless way to iterate on a design. In this demo, you'll choose a sample landing page and an AI critique from a specific point of view gets pinned to it in context, like comments on a canvas. Each note comes with a few different directions you can try on live, allowing you to shape the design by reacting to it rather than by writing prompts.
 
-Live: https://crit-mode.vercel.app
+## Why I chose this theme and approach
+
+This came out of three problems I've run into personally as an artist + creative director.
+
+**Prompting is not always the ideal interface for articulating taste.** Most people, including skilled creatives, are far better at recognizing what they want than describing it. A text box asks you to articulate an aesthetic you can only feel, and you usually flatten it in the act of typing.
+
+**You don't always know what you want until you see it.** Direction comes from reacting to concrete material, not from a blank field. A tool should hand you something to respond to instead of asking you to specify everything up front.
+
+**Taste evolves through dialogue** It sharpens through discernment and through the adjacent ideas that someone with a different point of view puts in front of you. Left alone, we converge on what we already like. This is exactly why people hire stylists and run design crits: a good critic surfaces an unexpected collision, gives you something to react to, and reads your reaction back as signal. The approach was to turn that dialogue into an interface, where the AI provokes and you direct by reacting.
+
+## What makes it interesting or non-obvious
+
+It inverts how most AI tools work. The AI does not generate from your words, it provokes, and you respond, so critique itself becomes the interface. The non-obvious move is that the alternatives are deliberately taste-different rather than "the optimized version," which keeps the act of discernment with the person instead of handing it to the model. The personas push this further: seeing the same page through a staff designer, a creative director, a CEO, and a first-time visitor surfaces the adjacencies that actually evolve someone's taste.
+
+## Key design decisions and tradeoffs
+
+- **Scoped to landing pages.** They have enough distinct regions to make in-context critique meaningful, and going deep on one use case beat going shallow on many. The same model could extend to other creative outputs later.
+- **No image generation.** Keeping scope on layout, copy, type, and color let me ship a coherent loop instead of half-solving the image problem.
+- **Sonnet over Opus.** I traded a little critique depth for noticeably faster generation, which matters more in a fast, reactive interface.
+- **A hybrid engine.** Hand-authored critiques are the always-on fallback and the LLM layers on top, so the demo never depends on a call succeeding.
+- **Modeled the page as data, not markup.** Every accepted change is a patch to that data, so the live try-on and the version history came almost for free, and the critique pins derive their positions from the live layout instead of fixed coordinates. This is the decision that made the reactive loop cheap to build.
+
+## How I would extend it with more time
+
+- More prompt engineering to make the critique voice consistently sharp.
+- Real image generation, so the visual direction can change, not just layout, type, copy, and color.
+- Live editing of the AI's suggestions, so you can take a generated option and fine-tune it yourself.
+- A version history closer to git, with branching and the ability to fork from any past state.
+- Persistence and accounts. v1 keeps everything in memory with no database, no auth, and no refresh survival, so a reload starts you over. A real version would save your sessions and full lineage and add accounts.
+- Extending beyond landing pages to other creative outputs.
+
+## Time spent
+
+About 6.5 hours: 45 minutes ideation, 1 hour design, 2 hours building the MVP, 1 hour on the personas feature, and 1.5 hours on refinements and optimizations.
+
 
 ---
 
