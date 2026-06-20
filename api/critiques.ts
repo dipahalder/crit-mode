@@ -14,9 +14,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 export const config = { maxDuration: 60 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  let core: typeof import('../server/core')
+  let core: typeof import('../server/core.js')
   try {
-    core = await import('../server/core')
+    core = await import('../server/core.js')
   } catch (e) {
     return res.status(500).json({ error: 'core import failed', message: String((e as Error)?.stack ?? e) })
   }

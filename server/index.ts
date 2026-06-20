@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
-import { BRAND_KEYS, FIELD_KEYS, MODEL, clientAvailable, fallbackFor, generate, generateMany, staticCritiques } from './core'
+import { BRAND_KEYS, FIELD_KEYS, MODEL, clientAvailable, fallbackFor, generate, generateMany, staticCritiques } from './core.js'
 
 // Local dev critique proxy (M11/M14): a thin Express wrapper around server/core.
 // In production these same endpoints are served by Vercel functions (api/*),

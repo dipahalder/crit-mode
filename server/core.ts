@@ -1,8 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { brands, paletteOptions } from '../src/data/brands'
-import { PERSONA_MAP } from '../src/data/personas'
-import { clean } from '../src/utils/clean'
-import type { BrandKey, CritiqueResponse, FieldKey, Persona } from '../src/types'
+import { brands, paletteOptions } from '../src/data/brands.js'
+import { PERSONA_MAP } from '../src/data/personas.js'
+import { clean } from '../src/utils/clean.js'
+import type { BrandKey, CritiqueResponse, FieldKey, Persona } from '../src/types.js'
 
 // Core critique logic for Design Crit Mode (M11/M14), shared by the local Express
 // proxy (server/index.ts) and the Vercel serverless function (api/critiques.ts).

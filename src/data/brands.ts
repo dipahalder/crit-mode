@@ -10,7 +10,7 @@
 //      guardrail 4 in CLAUDE.md, so the source of truth stays unmodified here.
 
 import type { Brand, BrandKey, Dot, Option, Palette, PaletteKey } from '../types'
-import { derivePalette } from '../utils/palette'
+import { derivePalette } from '../utils/palette.js'
 
 export const palettes: Record<PaletteKey, Palette> = {
   warmEarthy: { bg: '#f3e9dc', surface: '#fbf6ee', ink: '#2a1c12', sub: '#6f5743', accent: '#a9521f', accentInk: '#fbf6ee', line: '#e6d7c4', hero: '#e7d2b8', display: '"Newsreader", Georgia, serif', dispWeight: 500, dispLs: '-0.6px' },
